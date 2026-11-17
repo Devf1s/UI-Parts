@@ -101,12 +101,12 @@ export function Showcase() {
               <Swatch
                 label="Toxic"
                 style={{ "--venom-color": "#0f2e12", "--venom-color-2": "#4ade80", "--venom-fg": "#eaffea" } as React.CSSProperties}
-                props={{ gravity: 0.55, thickness: 1.4 }}
+                props={{ gravity: 650, thickness: 1.4 }}
               />
               <Swatch
                 label="Carnage"
                 style={{ "--venom-color": "#4a0a0a", "--venom-color-2": "#ef4444", "--venom-fg": "#fff" } as React.CSSProperties}
-                props={{ radius: 14, tendrils: 26, stiffness: 1.4 }}
+                props={{ radius: 14, tendrils: 4, lunge: 1.5 }}
               />
             </div>
           </DemoSection>
@@ -122,7 +122,7 @@ export function Showcase() {
             <h2 className="text-3xl font-semibold tracking-tight sm:text-5xl">Got an idea?</h2>
             <p className="mx-auto mt-3 max-w-md text-muted">Bring the cursor close to the button. On touch screens, tap it.</p>
             <div className="mt-10">
-              <VenomButton reach={160} className="h-14 px-9 text-base">
+              <VenomButton reach={140} className="h-14 px-9 text-base">
                 Say hello <ArrowUpRight className="size-4" />
               </VenomButton>
             </div>
@@ -192,7 +192,7 @@ function Swatch({
       className="flex flex-col items-center justify-between gap-10 rounded-3xl bg-card px-6 py-10 shadow-[inset_0_0_0_1px_var(--border)]"
       style={style}
     >
-      <VenomButton reach={110} {...props}>
+      <VenomButton reach={100} sense={150} {...props}>
         {label}
       </VenomButton>
       <code className="max-w-full truncate font-mono text-[11px] text-muted">

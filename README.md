@@ -6,7 +6,7 @@ Small, production-minded UI components for a portfolio landing, built with
 | Component | What it does |
 | --- | --- |
 | `Sidebar` | Floating rail that expands on hover (desktop), on tap (touch tablets) and turns into a swipeable drawer on phones. Shared-layout active pill, staggered labels, badges, scroll-spy friendly. |
-| `VenomButton` | Glossy black "symbiote" pill. A bundle of thin ink strands lunges at the cursor (a cartoon glove), grabs it, sags while you drag, and snaps strand by strand when you pull away. |
+| `VenomButton` | Glossy black "symbiote" pill. Strings fizz on the edge as the cursor nears, 2–6 tendrils lunge out and coil around the cursor (a cartoon glove), stretch, bead and web together as you pull, then pinch off and recoil. Idle bursts keep it alive. |
 
 ```bash
 npm install
@@ -28,7 +28,7 @@ import { VenomButton } from "@/components/ui/venom-button";
   footer={({ open }) => <UserCard compact={!open} />}
 />
 
-<VenomButton reach={240} tendrils={20}>let’s collaborate</VenomButton>
+<VenomButton tendrils={6} reach={140}>let’s collaborate</VenomButton>
 ```
 
 ### Sidebar props
@@ -51,15 +51,18 @@ All native `<button>` props, plus:
 
 | Prop | Default | Notes |
 | --- | --- | --- |
-| `reach` | `230` | A held strand snaps once stretched past this length, px. |
-| `sense` | `170` | How close to the edge the cursor must come to wake the strands, px. |
-| `tendrils` | `16` | Strands in the bundle (max 40). |
+| `tendrils` | `6` | Max tendrils at once, one per finger/wrist (1–6). 2 launch at the edge of reach, more as you get closer. |
+| `sense` | `220` | Distance from the edge where surface strings start to fizz, px. |
+| `reach` | `120` | Distance from the edge where tendrils launch, px. |
+| `maxLength` | `170` | A held tendril always snaps past this length, px. |
+| `snapStretch` | `1.6` | A held tendril snaps past this stretch ratio (rest length creeps up slowly, so slow pulls stretch further). |
+| `lunge` | `1` | Lunge speed multiplier. |
 | `thickness` | `1` | Strand thickness multiplier. |
-| `gravity` | `0.32` | Sag and drip. |
-| `stiffness` | `1` | Lunge/follow speed. |
+| `gravity` | `320` | Sag, px/s². |
 | `radius` | pill | Corner radius of the body, px. |
-| `splash` | `10` | Ink droplets on click. `0` disables. |
-| `cursor` | `"glove"` | `"glove"` swaps the cursor for a cartoon glove near the button, `"native"` keeps it. |
+| `splash` | `6` | Ink droplets on click. `0` disables. |
+| `idle` | `true` | Small bursts of strings every ~2 s while nobody is near (woken by a timer, no running loop). |
+| `cursor` | `"glove"` | `"glove"` morphs the cursor into a cartoon glove while it is caught; `"native"` keeps the system cursor. |
 | `autoplay` | `"touch"` | Ghost glove plays the effect when nobody points. `true`, `false` or `"touch"` (touch screens only). |
 
 CSS variables: `--venom-color` (body and ink), `--venom-color-2` (highlight), `--venom-fg` (label),
@@ -78,11 +81,11 @@ CSS variables: `--venom-color` (body and ink), `--venom-color-2` (highlight), `-
   out of the first JS chunk. `MotionConfig reducedMotion="user"` respects the OS setting.
 - **VenomButton body is pure CSS** (gradients, inset shadows, a blurred specular pseudo-element).
   Only the strands are drawn, on a 2D canvas sized to the button plus reach.
-- **One `requestAnimationFrame` loop** runs verlet physics for the strands and draws them
-  (zero React re-renders per frame). Layout is read from a cached rect, refreshed on scroll/resize.
+- **One `requestAnimationFrame` loop** runs verlet physics for the strands (240 Hz substeps,
+  volume-conserving radius, viscous rest length) and draws them (zero React re-renders per frame). Layout is read from a cached rect, refreshed on scroll/resize.
   The loop sleeps as soon as the strands settle or the button scrolls out of view
   (`IntersectionObserver`); far-away pointer moves are rejected without waking it.
-- The body lean toward the cursor is a CSS-variable `transform`, so it stays on the compositor.
+- Idle bursts are scheduled with a timer while the loop sleeps, so an idle page costs nothing between bursts.
 - Scroll-spy uses `IntersectionObserver`, not scroll listeners.
 
 ## Responsive & accessibility
@@ -96,7 +99,9 @@ CSS variables: `--venom-color` (body and ink), `--venom-color-2` (highlight), `-
 
 ## References
 
-The venom button recreates the effect from the reel by xitij (exteestudio,
-[live demo](https://exteestudio.github.io/venom-button/)). The implementation here is written
-from scratch for this stack: verlet ropes on a 2D canvas, CSS body, original glove artwork.
+The venom button recreates the effect from the reel by xitij / exteestudio
+([repo](https://github.com/exteestudio/venom-button), MIT, [live demo](https://exteestudio.github.io/venom-button/)).
+Behaviour and numbers (launch distances, lunge spring, volume conservation, viscous flow, 1.6× snap,
+beads, webs, finger wraps, idle bursts) follow its documentation; the code here is a separate
+implementation for this stack: a 2D canvas instead of ray-marched WebGL, a CSS body, and original glove artwork.
 The sidebar follows the collapsible rail + mobile drawer pattern of Linear-style dashboards.

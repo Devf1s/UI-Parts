@@ -12,28 +12,34 @@ import {
 } from "react";
 import { usePrefersReducedMotion } from "@/hooks/use-media-query";
 import { cn } from "@/lib/cn";
-import { drawVenom, getGlove, GLOVE_SIZE, type VenomPalette } from "./venom-draw";
-import { VenomSim, type VenomInput } from "./venom-sim";
+import { drawVenom, getGlove, GLOVE_SIZE, gloveSites, type GlovePose, type VenomPalette } from "./venom-draw";
+import { VenomSim, type VenomConfig } from "./venom-sim";
 import "./venom-button.css";
 
 export type VenomButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  /** A held strand snaps once stretched past this length, px. */
-  reach?: number;
-  /** How close (from the edge) the cursor must come to wake the strands, px. */
-  sense?: number;
-  /** Number of strands in the bundle. */
+  /** Max tendrils at once (one per finger/wrist), 1 … 6. */
   tendrils?: number;
+  /** Distance from the edge where surface strings start to fizz, px. */
+  sense?: number;
+  /** Distance from the edge where tendrils launch, px. */
+  reach?: number;
+  /** A held tendril always snaps past this length, px. */
+  maxLength?: number;
+  /** A held tendril snaps past this stretch ratio. */
+  snapStretch?: number;
+  /** Lunge speed multiplier. */
+  lunge?: number;
   /** Strand thickness multiplier. */
   thickness?: number;
-  /** Pull on the strands, px/frame². Higher = more sag and drip. */
+  /** Gravity on strands, px/s². */
   gravity?: number;
-  /** Lunge/follow speed multiplier, 0.3 … 2. */
-  stiffness?: number;
   /** Corner radius of the body, px. Defaults to a pill. */
   radius?: number;
   /** Ink droplets thrown on click. 0 disables. */
   splash?: number;
-  /** "glove" swaps the cursor for a cartoon glove near the button. */
+  /** Small bursts of strings every ~2 s while nobody is near. */
+  idle?: boolean;
+  /** "glove" morphs the cursor into a cartoon glove while it is caught. */
   cursor?: "glove" | "native";
   /** Ghost glove that plays the effect when nobody points. "touch" = only on touch screens. */
   autoplay?: boolean | "touch";
@@ -42,27 +48,30 @@ export type VenomButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 /**
- * A glossy black "symbiote" button. When the cursor comes close, a bundle of thin
- * ink strands lunges out of the facing edge, grabs the cursor (a cartoon glove), sags
- * and drips while you drag it around, and snaps strand by strand when you pull away.
+ * A glossy black "symbiote" button. As the cursor approaches, strings fizz on the facing edge,
+ * then thin tendrils lunge out, coil around the cursor (a cartoon glove) and hold on. Pull away
+ * and they thin, bead, web together, then pinch off and recoil.
  *
  * Performance
- * - Body is pure CSS. Only the strands use a 2D canvas, sized to the button + reach.
- * - One rAF loop, zero React renders per frame; it sleeps when the strands settle,
- *   when the button is off-screen (IntersectionObserver) or the tab is hidden.
- * - Layout is read from a cached rect that refreshes on scroll/resize only.
+ * - Body is pure CSS; only the goo is drawn, on a 2D canvas sized to the button + reach.
+ * - One rAF loop (physics at 240 Hz substeps, a few hundred float ops), zero React renders per
+ *   frame. It sleeps when nothing moves; idle bursts wake it with a timer, not a running loop.
+ * - Pauses off-screen (IntersectionObserver). Layout comes from a cached rect.
  * - prefers-reduced-motion: static glossy button, no canvas, no listeners.
  */
 export const VenomButton = forwardRef<HTMLButtonElement, VenomButtonProps>(function VenomButton(
   {
-    reach = 230,
-    sense = 170,
-    tendrils = 16,
+    tendrils = 6,
+    sense = 220,
+    reach = 120,
+    maxLength = 170,
+    snapStretch = 1.6,
+    lunge = 1,
     thickness = 1,
-    gravity = 0.32,
-    stiffness = 1,
+    gravity = 320,
     radius,
-    splash = 10,
+    splash = 6,
+    idle = true,
     cursor = "glove",
     autoplay = "touch",
     className,
@@ -82,14 +91,17 @@ export const VenomButton = forwardRef<HTMLButtonElement, VenomButtonProps>(funct
   useImperativeHandle(ref, () => btnRef.current as HTMLButtonElement);
 
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
-  const pad = Math.ceil(Math.max(reach, sense) + GLOVE_SIZE.h + 24);
+  const pad = Math.ceil(Math.max(sense, maxLength + GLOVE_SIZE.h) + 30);
 
-  const props = { reach, sense, tendrils: Math.max(1, Math.min(tendrils, 40)), thickness, gravity, stiffness, radius, splash, cursor, autoplay, pad, size };
+  const simCfg: VenomConfig = {
+    tendrils: Math.max(1, Math.min(tendrils, 6)),
+    sense, reach, maxLength, snapStretch, gravity, lunge, thickness, splash, idle,
+  };
+  const props = { simCfg, radius, cursor, autoplay, pad, size };
   const cfg = useRef(props);
   useEffect(() => {
     cfg.current = props;
-    const sim = S.current.sim;
-    if (sim) sim.cfg = { strands: props.tendrils, reach, sense, thickness, gravity, stiffness, splash };
+    if (S.current.sim) S.current.sim.cfg = props.simCfg;
   });
 
   const S = useRef({
@@ -97,7 +109,9 @@ export const VenomButton = forwardRef<HTMLButtonElement, VenomButtonProps>(funct
     ctx: null as CanvasRenderingContext2D | null,
     palette: { ink: "#0b0b12", sheen: "#ffffff", edge: null } as VenomPalette,
     raf: 0,
+    timer: 0 as ReturnType<typeof setTimeout> | 0,
     last: 0,
+    sleptAt: 0,
     visible: true,
     rect: null as DOMRect | null,
     rectDirty: true,
@@ -106,7 +120,7 @@ export const VenomButton = forwardRef<HTMLButtonElement, VenomButtonProps>(funct
     lastReal: -1e9,
     touchUntil: 0,
     coarse: false,
-    gloveOn: false,
+    hidingCursor: false,
   });
 
   useEffect(() => {
@@ -123,10 +137,10 @@ export const VenomButton = forwardRef<HTMLButtonElement, VenomButtonProps>(funct
     return () => ro.disconnect();
   }, []);
 
-  const setGlove = (on: boolean) => {
+  const hideCursor = (on: boolean) => {
     const st = S.current;
-    if (st.gloveOn === on) return;
-    st.gloveOn = on;
+    if (st.hidingCursor === on) return;
+    st.hidingCursor = on;
     document.documentElement.classList.toggle("venom-glove", on);
   };
 
@@ -134,23 +148,20 @@ export const VenomButton = forwardRef<HTMLButtonElement, VenomButtonProps>(funct
     const st = S.current;
     const C = cfg.current;
     const canvas = canvasRef.current;
-    if (!st.sim || !st.ctx || !C.size || !canvas || !btnRef.current) {
-      st.raf = 0;
-      return;
-    }
-    const dt = st.last ? Math.min((now - st.last) / 16.667, 3) : 1;
+    st.raf = 0;
+    if (!st.sim || !st.ctx || !C.size || !canvas || !btnRef.current) return;
+    const dt = st.last ? Math.min((now - st.last) / 1000, 0.05) : 1 / 60;
     st.last = now;
 
     if (st.rectDirty || !st.rect) {
-      // Read the layout box without our own lean transform.
-      const r = btnRef.current.getBoundingClientRect();
-      st.rect = new DOMRect(r.left - st.sim.pullX, r.top - st.sim.pullY, r.width, r.height);
+      st.rect = btnRef.current.getBoundingClientRect();
       st.rectDirty = false;
     }
     const { w, h } = C.size;
     const P = C.pad;
     const W = w + P * 2, H = h + P * 2;
 
+    // pointer: real mouse, a recent touch, or the autoplay ghost
     let pointer: { x: number; y: number } | null = null;
     let ghost = false;
     const realActive = now - st.lastReal < 2500 || now < st.touchUntil;
@@ -159,20 +170,19 @@ export const VenomButton = forwardRef<HTMLButtonElement, VenomButtonProps>(funct
     } else if (C.autoplay === true || (C.autoplay === "touch" && st.coarse)) {
       ghost = true;
       const t = now / 1000;
-      // Wander below/around the button, come close to get grabbed, then pull away to snap.
-      const rr = h / 2 + 30 + C.reach * (0.45 + 0.5 * Math.sin(t * 0.9));
-      const a = Math.PI / 2 + Math.sin(t * 0.47) * 1.25;
-      pointer = { x: P + w / 2 + Math.cos(a) * (rr + w * 0.2), y: P + h / 2 + Math.sin(a) * rr };
+      // wander under the button: come close to get caught, drift away to snap the strands
+      pointer = {
+        x: P + w / 2 + Math.sin(t * 0.6) * w * 0.42,
+        y: P + h + 30 + 130 * (0.5 + 0.5 * Math.sin(t * 0.85)),
+      };
     }
 
-    const input: VenomInput = { pointer, bx: P, by: P, bw: w, bh: h, radius: C.radius ?? h / 2 };
-    const active = st.sim.step(dt, input);
+    const sim = st.sim;
+    const pose: GlovePose | null = pointer ? { x: pointer.x + sim.tugX, y: pointer.y + sim.tugY, rot: sim.tugRot } : null;
+    const sites = pose ? gloveSites(pose) : null;
+    sim.step(dt, { x: P, y: P, w, h, r: C.radius ?? h / 2 }, pointer, sites);
 
-    // Lean the body toward what it is holding (compositor-only transform).
-    btnRef.current.style.setProperty("--vx", `${st.sim.pullX.toFixed(2)}px`);
-    btnRef.current.style.setProperty("--vy", `${st.sim.pullY.toFixed(2)}px`);
-
-    // Canvas
+    // canvas
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const cw = Math.round(W * dpr), ch = Math.round(H * dpr);
     if (canvas.width !== cw || canvas.height !== ch) {
@@ -182,23 +192,41 @@ export const VenomButton = forwardRef<HTMLButtonElement, VenomButtonProps>(funct
     const ctx = st.ctx;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
+    const showGlove = C.cursor === "glove" && (st.pointerType !== "touch" || ghost);
+    drawVenom(ctx, sim, st.palette, showGlove ? pose : null, sites);
+    hideCursor(showGlove && !ghost && sim.glove > 0.5);
 
-    const glove =
-      C.cursor === "glove" && pointer && (st.pointerType !== "touch" || ghost) && (active || ghost);
-    drawVenom(ctx, st.sim, st.palette, pointer, !!glove);
-    if (!ghost) setGlove(!!glove && st.pointerType === "mouse");
-
-    const keep = st.visible && (active || ghost || !st.sim.settled());
-    st.raf = keep ? requestAnimationFrame(frame) : 0;
-    if (!keep) {
+    if (st.visible && (sim.busy || ghost)) {
+      st.raf = requestAnimationFrame(frame);
+    } else {
       st.last = 0;
-      setGlove(false);
+      hideCursor(false);
+      // asleep: wake for the next idle burst with a timer instead of a running loop
+      if (st.visible && sim.cfg.idle && !reducedRef.current) {
+        st.sleptAt = performance.now();
+        clearTimeout(st.timer);
+        st.timer = setTimeout(() => {
+          sim.skip((performance.now() - st.sleptAt) / 1000);
+          if (!st.raf) st.raf = requestAnimationFrame(frame);
+        }, sim.idleIn * 1000 + 16);
+      }
     }
   }, []);
 
+  const reducedRef = useRef(reduced);
+  useEffect(() => {
+    reducedRef.current = reduced;
+  }, [reduced]);
+
   const wake = useCallback(() => {
     const st = S.current;
-    if (!st.raf && st.visible && st.sim) st.raf = requestAnimationFrame(frame);
+    if (st.raf || !st.visible || !st.sim) return;
+    if (st.timer) {
+      clearTimeout(st.timer);
+      st.timer = 0;
+      st.sim.skip((performance.now() - st.sleptAt) / 1000);
+    }
+    st.raf = requestAnimationFrame(frame);
   }, [frame]);
 
   const readColors = useCallback(() => {
@@ -206,12 +234,12 @@ export const VenomButton = forwardRef<HTMLButtonElement, VenomButtonProps>(funct
     if (!el) return;
     const cs = getComputedStyle(el);
     const ink = cs.getPropertyValue("--venom-color").trim() || "#0b0b12";
-    const rim = cs.getPropertyValue("--venom-color-2").trim() || "#ffffff";
+    const sheen = cs.getPropertyValue("--venom-color-2").trim() || "#ffffff";
     const edge = cs.getPropertyValue("--venom-edge").trim();
-    S.current.palette = { ink, sheen: rim, edge: edge && edge !== "transparent" && edge !== "none" ? edge : null };
+    S.current.palette = { ink, sheen, edge: edge && edge !== "none" && edge !== "transparent" ? edge : null };
   }, []);
 
-  // Set up canvas + sim once measured.
+  // canvas + sim, once measured
   useEffect(() => {
     if (reduced || !size) return;
     const st = S.current;
@@ -219,9 +247,8 @@ export const VenomButton = forwardRef<HTMLButtonElement, VenomButtonProps>(funct
     if (!canvas) return;
     if (!st.sim) {
       st.ctx = canvas.getContext("2d");
-      const C = cfg.current;
-      st.sim = new VenomSim({ strands: C.tendrils, reach: C.reach, sense: C.sense, thickness: C.thickness, gravity: C.gravity, stiffness: C.stiffness, splash: C.splash });
-      getGlove(); // start decoding the cursor image early
+      st.sim = new VenomSim(cfg.current.simCfg);
+      getGlove();
       readColors();
     }
     st.coarse = window.matchMedia("(pointer: coarse)").matches;
@@ -229,6 +256,7 @@ export const VenomButton = forwardRef<HTMLButtonElement, VenomButtonProps>(funct
     wake();
   }, [reduced, size, wake, readColors]);
 
+  // listeners
   useEffect(() => {
     if (reduced) return;
     const st = S.current;
@@ -242,7 +270,7 @@ export const VenomButton = forwardRef<HTMLButtonElement, VenomButtonProps>(funct
       const r = st.rect;
       const R = cfg.current.pad;
       const near = !r || (e.clientX > r.left - R && e.clientX < r.right + R && e.clientY > r.top - R && e.clientY < r.bottom + R);
-      if (near || st.raf) wake();
+      if (near) wake();
     };
     const onDown = (e: PointerEvent) => {
       if (e.pointerType !== "touch") return;
@@ -254,7 +282,7 @@ export const VenomButton = forwardRef<HTMLButtonElement, VenomButtonProps>(funct
     };
     const onLeave = () => {
       st.lastReal = -1e9;
-      setGlove(false);
+      hideCursor(false);
       wake();
     };
 
@@ -263,11 +291,13 @@ export const VenomButton = forwardRef<HTMLButtonElement, VenomButtonProps>(funct
         st.visible = entry.isIntersecting;
         st.rectDirty = true;
         if (st.visible) wake();
-        else if (st.raf) {
+        else {
           cancelAnimationFrame(st.raf);
+          clearTimeout(st.timer);
           st.raf = 0;
+          st.timer = 0;
           st.last = 0;
-          setGlove(false);
+          hideCursor(false);
         }
       },
       { rootMargin: "120px" },
@@ -294,8 +324,10 @@ export const VenomButton = forwardRef<HTMLButtonElement, VenomButtonProps>(funct
       window.removeEventListener("scroll", markDirty, { capture: true });
       window.removeEventListener("resize", markDirty);
       cancelAnimationFrame(st.raf);
+      clearTimeout(st.timer);
       st.raf = 0;
-      setGlove(false);
+      st.timer = 0;
+      hideCursor(false);
     };
   }, [reduced, wake, readColors]);
 
@@ -334,7 +366,7 @@ export const VenomButton = forwardRef<HTMLButtonElement, VenomButtonProps>(funct
           className,
         )}
       >
-        {children}
+        <span className="venom-label">{children}</span>
       </button>
     </span>
   );
