@@ -145,14 +145,19 @@ test(`glass sidebar: expanding and scrolling under it stay smooth (CPU ÷${GLASS
   const glass = await glassSequence(page);
 
   const p50 = glass[Math.floor(glass.length * 0.5)];
+  const p95 = glass[Math.floor(glass.length * 0.95)];
   const ratio = glass.length / plain.length;
   test.info().annotations.push({
     type: "sidebar frames",
-    description: `glass ${glass.length} frames (p50 ${p50.toFixed(1)} ms) vs plain ${plain.length}: ${(ratio * 100).toFixed(0)}%`,
+    description: `glass ${glass.length} frames (p50 ${p50.toFixed(1)}, p95 ${p95.toFixed(1)} ms) vs plain ${plain.length}: ${(ratio * 100).toFixed(0)}%`,
   });
-  // the glass may cost at most 40 % of the frames, and must still hold ~30 fps typical
-  expect(ratio).toBeGreaterThan(0.6);
+  // Everywhere: ~30 fps typical and no hitch longer than 4 frames.
   expect(p50).toBeLessThan(34);
+  expect(p95).toBeLessThan(67);
+  // On a throttled real machine both runs share the slowdown, so the glass may cost at most 40 % of
+  // the frames. Unthrottled on a GPU-less runner the plain run sits at the 60 fps vsync cap while
+  // the glass is rasterised in software, so the ratio says nothing about our code there.
+  if (GLASS_THROTTLE > 1) expect(ratio).toBeGreaterThan(0.6);
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
 });
 
