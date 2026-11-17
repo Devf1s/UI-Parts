@@ -284,94 +284,8 @@ void main() {
 #endif
 }`;
 
-/** Pass 2: studio shading, heightfield soft shadows, AO, label, tone map; floor → shadow alpha. */
-export const shadeFrag = (float: boolean) => `#version 300 es
-precision highp float;
-${float ? "" : "#define ENC8 1"}
-uniform sampler2D uG;
-uniform sampler2D uLabel;
-uniform vec2 uRes;
-uniform float uDpr;
-uniform float uTime;
-uniform vec4 uLabelBox;
-uniform vec2 uLabelTx;
-uniform float uLabelAmt;
-uniform float uLabelLod;
-uniform float uIri;
-uniform float uZMax;
-uniform float uLift;
-uniform vec4 uBtnP;
-uniform float uBtnR;
-uniform vec2 uWin;
-uniform vec2 uBtnH;
-uniform sampler2D uHandCol;
-uniform sampler2D uArrowCol;
-uniform float uMorph;
-uniform vec4 uHand;
-uniform vec4 uHand2;
-uniform vec3 uAlb;       // body albedo (linear)
-uniform vec3 uTint;      // rim / sheen tint (linear, normalised)
-uniform vec3 uSilver;    // label colour (linear)
-uniform float uFloorK;   // how much the floor bounces light into the goo (white floor 1, dark floor ~0.2)
-uniform float uShadowA;  // strength of the shadow drawn on the page
-uniform vec3 uShadowC;   // shadow colour (display space)
-uniform vec4 uRim;       // coloured fresnel edge (linear rgb, strength): keeps black goo readable on dark pages
-out vec4 outC;
-
-vec3 KEY;
-
-vec4 dec(vec4 g) {
-#ifdef ENC8
-  if (g.a < 0.1) return vec4(g.r * 4.0, 0.0, 0.0, 0.0);
-  return vec4(g.rg * 2.0 - 1.0, g.b * 128.0, g.a * 4.0);
-#else
-  return g;
-#endif
-}
-float decH(vec4 g) {
-#ifdef ENC8
-  return g.b * 128.0;
-#else
-  return g.b;
-#endif
-}
-vec2 uvOf(vec2 p) { return vec2(p.x * uDpr / uRes.x, 1.0 - p.y * uDpr / uRes.y); }
-vec4 gAt(ivec2 c) { return dec(texelFetch(uG, clamp(c, ivec2(0), ivec2(uRes) - 1), 0)); }
-float hAt(vec2 p, float lod) { return decH(textureLod(uG, uvOf(p), lod)); }
-${NOISE}
-
-float softShadow(vec2 p, float h0) {
-  vec2 L2 = normalize(KEY.xy);
-  float tanE = KEY.z / length(KEY.xy);
-  float res = 1.0, s = 1.0;
-  for (int i = 0; i < 28; i++) {
-    float zr = h0 + s * tanE;
-    if (zr > uZMax) break;
-    float hgt = hAt(p + L2 * s, log2(1.0 + s * 0.08 * uDpr));
-    res = min(res, (1.5 - 0.7 * uLift) * (zr - hgt) / s);
-    if (res < -0.2) break;
-    s += 0.8 + s * 0.14;
-  }
-  res = clamp(res, 0.0, 1.0);
-  return res * res * (3.0 - 2.0 * res);
-}
-float occlusion(vec2 p, float h) {
-  vec2 uv = uvOf(p);
-  float o = 0.0;
-  o += 0.50 * clamp((decH(textureLod(uG, uv, log2(6.0 * uDpr))) - h) / 9.0, 0.0, 1.0);
-  o += 0.32 * clamp((decH(textureLod(uG, uv, log2(20.0 * uDpr))) - h) / 26.0, 0.0, 1.0);
-  o += 0.26 * clamp((decH(textureLod(uG, uv, log2(60.0 * uDpr))) - h) / 60.0, 0.0, 1.0);
-  return clamp(1.0 - o, 0.0, 1.0);
-}
-// 0 far from everything, 1 near something tall: a soft weight instead of an on/off test, so the
-// cast shadow never ends in a visible seam on the page
-float nearW(vec2 p) {
-  float l = log2(96.0 * uDpr);
-  float m = max(max(hAt(p + vec2(48.0, 48.0), l), hAt(p + vec2(-48.0, 48.0), l)),
-                max(hAt(p + vec2(48.0, -48.0), l), hAt(p + vec2(-48.0, -48.0), l)));
-  return smoothstep(0.02, 1.5, max(m, hAt(p, l)));
-}
-
+/** Studio environment: room, softboxes, floor bounce. Needs KEY, uTint, uFloorK and hash12. */
+const ENV = `
 float softbox(vec3 R, vec3 c, vec2 size, float edge) {
   float cd = dot(R, c);
   if (cd <= 0.0) return 0.0;
@@ -429,28 +343,98 @@ vec3 env(vec3 R) {
   c += vec3(0.28 * uFloorK) * wall * wall * keySide * keySide * keySide;
   return c;
 }
+`;
 
-// the label: a flat layer of polished metal on top of the goo, shaded on its own
-vec3 shadeLabel(vec2 lu, float sh, float ao) {
-  vec2 tx = uLabelTx;
-  float mx = textureLod(uLabel, lu + vec2(tx.x, 0.0), uLabelLod).a - textureLod(uLabel, lu - vec2(tx.x, 0.0), uLabelLod).a;
-  float my = textureLod(uLabel, lu + vec2(0.0, tx.y), uLabelLod).a - textureLod(uLabel, lu - vec2(0.0, tx.y), uLabelLod).a;
-  vec3 N = normalize(vec3(-mx * 1.1, -my * 1.1, 1.0));
-  vec3 R = reflect(vec3(0.0, 0.0, -1.0), N);
-  float t = clamp((lu.y - 0.32) / 0.36, 0.0, 1.0);
-  float grad = t < 0.48 ? mix(1.12, 0.74, smoothstep(0.0, 0.48, t)) : mix(0.6, 0.95, smoothstep(0.5, 1.0, t));
-  vec3 col = uSilver * grad * (0.82 + 0.18 * sh);
-  col += env(R) * uSilver * 0.3;
-  float edge = clamp(length(vec2(mx, my)) * 1.6, 0.0, 1.0);
-  float facing = dot(normalize(vec2(mx, my) + 1e-5), normalize(KEY.xy));
-  col *= 1.0 - 0.25 * edge * smoothstep(0.0, 0.8, -facing);
-  col += vec3(1.0) * 0.55 * edge * smoothstep(0.1, 0.9, facing);
-  vec3 Hh = normalize(KEY + vec3(0.0, 0.0, 1.0));
-  float NdH = max(dot(N, Hh), 0.0), a2 = 0.01;
-  col += vec3(1.0) * a2 / (3.14159 * pow(NdH * NdH * (a2 - 1.0) + 1.0, 2.0)) * 0.05 * sh;
-  return col * mix(0.85, 1.0, ao);
+const TONE = `
+vec3 aces(vec3 x) { return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
+vec3 tone(vec3 c) { return pow(aces(c * 0.95), vec3(1.0 / 2.2)); }
+`;
+
+/** Pass 2: studio shading, heightfield soft shadows, AO, tone map; floor → shadow alpha. */
+export const shadeFrag = (float: boolean) => `#version 300 es
+precision highp float;
+${float ? "" : "#define ENC8 1"}
+uniform sampler2D uG;
+uniform vec2 uRes;
+uniform float uDpr;
+uniform float uTime;
+uniform float uIri;
+uniform float uZMax;
+uniform float uLift;
+uniform vec4 uBtnP;
+uniform float uBtnR;
+uniform vec2 uWin;
+uniform vec2 uBtnH;
+uniform sampler2D uHandCol;
+uniform sampler2D uArrowCol;
+uniform float uMorph;
+uniform vec4 uHand;
+uniform vec4 uHand2;
+uniform vec3 uAlb;       // body albedo (linear)
+uniform vec3 uTint;      // rim / sheen tint (linear, normalised)
+uniform float uFloorK;   // how much the floor bounces light into the goo (white floor 1, dark floor ~0.2)
+uniform float uShadowA;  // strength of the shadow drawn on the page
+uniform vec3 uShadowC;   // shadow colour (display space)
+uniform vec4 uRim;       // coloured fresnel edge (linear rgb, strength): keeps black goo readable on dark pages
+layout(location = 0) out vec4 outC;
+layout(location = 1) out vec4 outL; // label visibility, shadow, AO: the final pass draws the label from it
+
+vec3 KEY;
+float LV = 0.0, LSH = 1.0, LAO = 1.0;
+
+vec4 dec(vec4 g) {
+#ifdef ENC8
+  if (g.a < 0.1) return vec4(g.r * 4.0, 0.0, 0.0, 0.0);
+  return vec4(g.rg * 2.0 - 1.0, g.b * 128.0, g.a * 4.0);
+#else
+  return g;
+#endif
+}
+float decH(vec4 g) {
+#ifdef ENC8
+  return g.b * 128.0;
+#else
+  return g.b;
+#endif
+}
+vec2 uvOf(vec2 p) { return vec2(p.x * uDpr / uRes.x, 1.0 - p.y * uDpr / uRes.y); }
+vec4 gAt(ivec2 c) { return dec(texelFetch(uG, clamp(c, ivec2(0), ivec2(uRes) - 1), 0)); }
+float hAt(vec2 p, float lod) { return decH(textureLod(uG, uvOf(p), lod)); }
+${NOISE}
+
+float softShadow(vec2 p, float h0) {
+  vec2 L2 = normalize(KEY.xy);
+  float tanE = KEY.z / length(KEY.xy);
+  float res = 1.0, s = 1.0;
+  for (int i = 0; i < 28; i++) {
+    float zr = h0 + s * tanE;
+    if (zr > uZMax) break;
+    float hgt = hAt(p + L2 * s, log2(1.0 + s * 0.08 * uDpr));
+    res = min(res, (1.5 - 0.7 * uLift) * (zr - hgt) / s);
+    if (res < -0.2) break;
+    s += 0.8 + s * 0.14;
+  }
+  res = clamp(res, 0.0, 1.0);
+  return res * res * (3.0 - 2.0 * res);
+}
+float occlusion(vec2 p, float h) {
+  vec2 uv = uvOf(p);
+  float o = 0.0;
+  o += 0.50 * clamp((decH(textureLod(uG, uv, log2(6.0 * uDpr))) - h) / 9.0, 0.0, 1.0);
+  o += 0.32 * clamp((decH(textureLod(uG, uv, log2(20.0 * uDpr))) - h) / 26.0, 0.0, 1.0);
+  o += 0.26 * clamp((decH(textureLod(uG, uv, log2(60.0 * uDpr))) - h) / 60.0, 0.0, 1.0);
+  return clamp(1.0 - o, 0.0, 1.0);
+}
+// 0 far from everything, 1 near something tall: a soft weight instead of an on/off test, so the
+// cast shadow never ends in a visible seam on the page
+float nearW(vec2 p) {
+  float l = log2(96.0 * uDpr);
+  float m = max(max(hAt(p + vec2(48.0, 48.0), l), hAt(p + vec2(-48.0, 48.0), l)),
+                max(hAt(p + vec2(48.0, -48.0), l), hAt(p + vec2(-48.0, -48.0), l)));
+  return smoothstep(0.02, 1.5, max(m, hAt(p, l)));
 }
 
+${ENV}
 vec3 faceWindow(vec2 b) {
   vec2 w = vec2((b.x - uWin.x + b.y * 0.08) / uWin.y, (b.y + 0.3) / 1.15);
   float fade = 1.0 - smoothstep(0.2, 1.05, length(w * vec2(0.85, 0.8)));
@@ -512,13 +496,10 @@ vec3 shadeGoo(vec2 p, vec4 g) {
   col += rimC * bevel * 0.5 * (1.0 - strandness) * mix(0.7, 1.0, sh);
   col += uRim.rgb * uRim.a * pow(1.0 - NdV, 2.2) * mix(0.55, 1.0, strandness);
 
-  if (uLabelAmt > 0.0) {
-    vec2 lu = (p - uLabelBox.xy) / (2.0 * uLabelBox.zw) + 0.5;
-    if (lu.x > 0.0 && lu.y > 0.0 && lu.x < 1.0 && lu.y < 1.0) {
-      float m = textureLod(uLabel, lu, uLabelLod).a * (1.0 - smoothstep(0.15, 0.5, strandness)) * uLabelAmt;
-      if (m > 0.002) col = mix(col, shadeLabel(lu, sh, ao), m);
-    }
-  }
+  // the label itself is drawn at full canvas resolution in the final pass, so it stays sharp
+  LV = 1.0 - smoothstep(0.15, 0.5, strandness);
+  LSH = sh;
+  LAO = ao;
   return col;
 }
 
@@ -561,8 +542,7 @@ float buttonShadow(vec2 p) {
   return clamp(1.0 - lit, 0.0, 0.88);
 }
 
-vec3 aces(vec3 x) { return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
-vec3 tone(vec3 c) { return pow(aces(c * 0.95), vec3(1.0 / 2.2)); }
+${TONE}
 float toneL(float c) { return tone(vec3(c)).g; }
 
 // the page is the floor: light it like the original's white studio floor, tone map it, and keep only
@@ -596,33 +576,92 @@ void main() {
       vec3 gc = tone(gn.w > 0.5 ? shadeAny(p, gn) : uAlb * 3.0 + 0.004);
       o = o * (1.0 - cov) + vec4(gc, 1.0) * cov;
     }
+    LV = 0.0;
   } else {
     o = vec4(tone(shadeAny(p, g)), 1.0);
   }
   o.rgb += (hash12(gl_FragCoord.xy + fract(uTime) * 61.0) - 0.5) / 255.0 * o.a;
   outC = o;
+  outL = vec4(LV, LSH, LAO, 1.0);
 }`;
 
-/** Pass 3: FXAA on premultiplied colour, alpha carried along. */
-export const FXAA = `#version 300 es
+/**
+ * Pass 3, to the canvas at full device resolution: FXAA (upscaling the shading targets when adaptive
+ * quality lowered them), then the label as polished metal straight from its 4× mask, so text stays
+ * as sharp as the browser's own whatever the scene resolution.
+ */
+export const FINAL = `#version 300 es
 precision highp float;
 uniform sampler2D uC;
-uniform vec2 uRes;
+uniform sampler2D uL;
+uniform sampler2D uLabel;
+uniform vec2 uRes;       // shading target size
+uniform vec2 uOut;       // canvas size
+uniform float uDprO;     // canvas px per CSS px
+uniform vec4 uLabelBox;
+uniform vec2 uLabelTx;
+uniform float uLabelAmt;
+uniform float uLabelLod;
+uniform vec3 uSilver;    // label colour (linear)
+uniform vec3 uTint;
+uniform float uFloorK;
 out vec4 outC;
+
+vec3 KEY;
+${NOISE}
+${ENV}
+${TONE}
+// the label: a flat layer of polished metal on top of the goo, shaded on its own
+vec3 shadeLabel(vec2 lu, float sh, float ao) {
+  vec2 tx = uLabelTx;
+  float mx = textureLod(uLabel, lu + vec2(tx.x, 0.0), uLabelLod).a - textureLod(uLabel, lu - vec2(tx.x, 0.0), uLabelLod).a;
+  float my = textureLod(uLabel, lu + vec2(0.0, tx.y), uLabelLod).a - textureLod(uLabel, lu - vec2(0.0, tx.y), uLabelLod).a;
+  vec3 N = normalize(vec3(-mx * 1.1, -my * 1.1, 1.0));
+  vec3 R = reflect(vec3(0.0, 0.0, -1.0), N);
+  float t = clamp((lu.y - 0.32) / 0.36, 0.0, 1.0);
+  float grad = t < 0.48 ? mix(1.12, 0.74, smoothstep(0.0, 0.48, t)) : mix(0.6, 0.95, smoothstep(0.5, 1.0, t));
+  vec3 col = uSilver * grad * (0.82 + 0.18 * sh);
+  col += env(R) * uSilver * 0.3;
+  float edge = clamp(length(vec2(mx, my)) * 1.6, 0.0, 1.0);
+  float facing = dot(normalize(vec2(mx, my) + 1e-5), normalize(KEY.xy));
+  col *= 1.0 - 0.25 * edge * smoothstep(0.0, 0.8, -facing);
+  col += vec3(1.0) * 0.55 * edge * smoothstep(0.1, 0.9, facing);
+  vec3 Hh = normalize(KEY + vec3(0.0, 0.0, 1.0));
+  float NdH = max(dot(N, Hh), 0.0), a2 = 0.01;
+  col += vec3(1.0) * a2 / (3.14159 * pow(NdH * NdH * (a2 - 1.0) + 1.0, 2.0)) * 0.05 * sh;
+  return col * mix(0.85, 1.0, ao);
+}
+
 float luma(vec4 c) { return dot(c.rgb, vec3(0.299, 0.587, 0.114)) + (1.0 - c.a) * 0.5; }
-void main() {
-  vec2 px = 1.0 / uRes, uv = gl_FragCoord.xy * px;
+vec4 fxaa(vec2 uv) {
+  vec2 px = 1.0 / uRes;
   vec4 cM = texture(uC, uv);
   float lNW = luma(texture(uC, uv + vec2(-1.0, -1.0) * px)), lNE = luma(texture(uC, uv + vec2(1.0, -1.0) * px));
   float lSW = luma(texture(uC, uv + vec2(-1.0, 1.0) * px)), lSE = luma(texture(uC, uv + vec2(1.0, 1.0) * px));
   float lM = luma(cM);
   float lMin = min(lM, min(min(lNW, lNE), min(lSW, lSE))), lMax = max(lM, max(max(lNW, lNE), max(lSW, lSE)));
-  if (lMax - lMin < max(0.03, lMax * 0.08)) { outC = cM; return; }
+  if (lMax - lMin < max(0.03, lMax * 0.08)) return cM;
   vec2 dir = vec2(-((lNW + lNE) - (lSW + lSE)), (lNW + lSW) - (lNE + lSE));
   float reduce = max((lNW + lNE + lSW + lSE) * 0.03125, 1.0 / 128.0);
   dir = clamp(dir / (min(abs(dir.x), abs(dir.y)) + reduce), -8.0, 8.0) * px;
   vec4 A = 0.5 * (texture(uC, uv - dir / 6.0) + texture(uC, uv + dir / 6.0));
   vec4 B = A * 0.5 + 0.25 * (texture(uC, uv - dir * 0.5) + texture(uC, uv + dir * 0.5));
   float lB = luma(B);
-  outC = (lB < lMin || lB > lMax) ? A : B;
+  return (lB < lMin || lB > lMax) ? A : B;
+}
+
+void main() {
+  KEY = normalize(vec3(-0.45, -0.56, 0.74));
+  vec2 uv = gl_FragCoord.xy / uOut;
+  vec4 c = fxaa(uv);
+  vec2 p = vec2(gl_FragCoord.x, uOut.y - gl_FragCoord.y) / uDprO;
+  vec2 lu = (p - uLabelBox.xy) / (2.0 * uLabelBox.zw) + 0.5;
+  // sampled outside the branch so the mip choice has valid derivatives; slight negative bias for crispness
+  float mask = texture(uLabel, clamp(lu, 0.0, 1.0), -0.4).a;
+  if (uLabelAmt > 0.0 && lu.x > 0.0 && lu.y > 0.0 && lu.x < 1.0 && lu.y < 1.0) {
+    vec4 L = texture(uL, uv);
+    float m = mask * L.x * uLabelAmt;
+    if (m > 0.002) c.rgb = mix(c.rgb, tone(shadeLabel(lu, L.y, L.z)) * c.a, m);
+  }
+  outC = c;
 }`;
