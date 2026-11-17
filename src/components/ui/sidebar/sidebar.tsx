@@ -73,11 +73,13 @@ export function Sidebar({
   const canHover = useCanHover();
   const [pinned, setPinned] = useState(defaultPinned);
   const [hovered, setHovered] = useState(false);
+  const [keyboardFocus, setKeyboardFocus] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const navRef = useRef<HTMLElement>(null);
   const hoverTimer = useRef<number>(undefined);
 
-  const open = pinned || (hovered && expandOnHover && canHover);
+  // Keyboard focus opens it on every device (an iPad with a keyboard has no hover).
+  const open = pinned || keyboardFocus || (hovered && expandOnHover && canHover);
 
   // Close the drawer when we leave mobile layout (rotation, resize).
   if (!isMobile && drawerOpen) setDrawerOpen(false);
@@ -134,9 +136,12 @@ export function Sidebar({
           window.clearTimeout(hoverTimer.current);
           setHovered(false);
         }}
-        onFocus={() => setHovered(true)}
+        onFocus={(e) => {
+          // :focus-visible = keyboard focus; a tap on a link must not expand the rail
+          if (e.target.matches(":focus-visible")) setKeyboardFocus(true);
+        }}
         onBlur={(e) => {
-          if (!e.currentTarget.contains(e.relatedTarget as Node)) setHovered(false);
+          if (!e.currentTarget.contains(e.relatedTarget as Node)) setKeyboardFocus(false);
         }}
       >
         <div

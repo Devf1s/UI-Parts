@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 
-/** Returns the id of the section that currently sits in the middle band of the viewport. */
+/**
+ * Returns the id of the section that currently sits in the middle band of the viewport.
+ * The last section is often too short to ever reach that band, so it also wins whenever it is
+ * fully on screen (i.e. the page is scrolled to the bottom).
+ */
 export function useScrollSpy(ids: string[], initial = ids[0]) {
   const [active, setActive] = useState(initial);
   const key = ids.join("|");
@@ -15,15 +19,30 @@ export function useScrollSpy(ids: string[], initial = ids[0]) {
     if (!els.length) return;
 
     // IntersectionObserver: no scroll listeners, no layout reads on the main thread.
+    const last = els[els.length - 1];
+    let middle = els[0].id;
+    let atEnd = false;
     const io = new IntersectionObserver(
       (entries) => {
         const hit = entries.find((e) => e.isIntersecting);
-        if (hit) setActive(hit.target.id);
+        if (hit) middle = hit.target.id;
+        if (!atEnd) setActive(middle);
       },
       { rootMargin: "-45% 0px -50% 0px" },
     );
+    const end = new IntersectionObserver(
+      ([e]) => {
+        atEnd = e.intersectionRatio > 0.98;
+        setActive(atEnd ? last.id : middle);
+      },
+      { threshold: [0.98] },
+    );
     els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
+    end.observe(last);
+    return () => {
+      io.disconnect();
+      end.disconnect();
+    };
   }, [key]);
 
   return [active, setActive] as const;

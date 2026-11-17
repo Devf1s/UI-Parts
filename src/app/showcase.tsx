@@ -62,7 +62,8 @@ export function Showcase() {
             <div
               className="flex min-w-0 flex-1 items-center justify-between gap-2 transition-opacity duration-300"
               style={{ opacity: open ? 1 : 0 }}
-              aria-hidden={!open}
+              // inert, not aria-hidden: hidden content must not stay keyboard-focusable
+              inert={!open}
             >
               <div className="min-w-0 leading-tight">
                 <div className="truncate text-sm font-medium">Your Name</div>
@@ -148,7 +149,7 @@ function Hero() {
       </p>
       <div className="mt-12 flex flex-wrap items-center gap-x-10 gap-y-8">
         <VenomButton className="h-16 px-10 text-lg">let&rsquo;s collaborate</VenomButton>
-        <a href="#contact" className="text-sm font-medium text-muted underline-offset-4 hover:text-fg hover:underline">
+        <a href="#contact" className="inline-flex min-h-11 items-center text-sm font-medium text-muted underline-offset-4 hover:text-fg hover:underline">
           or get in touch
         </a>
       </div>
