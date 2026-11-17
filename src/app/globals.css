@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+/* next-themes puts `.dark` on <html>; make Tailwind's `dark:` follow it */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ------------------------------------------------------------------ */
+/*  Design tokens. Override any of these to re-skin the whole showcase */
+/* ------------------------------------------------------------------ */
+:root {
+  --bg: #f6f6f8;
+  --fg: #0d0d12;
+  --muted: #6b6b7b;
+  --card: #ffffff;
+  --card-2: #efeff3;
+  --border: rgb(13 13 18 / 0.08);
+  --accent: #6d28d9;
+  --accent-fg: #ffffff;
+  --ring: rgb(109 40 217 / 0.45);
+
+  /* Sidebar */
+  --sb-bg: var(--card);
+  --sb-fg: var(--fg);
+  --sb-muted: var(--muted);
+  --sb-hover: var(--card-2);
+  --sb-active-bg: var(--fg);
+  --sb-active-fg: var(--bg);
+  --sb-radius: 22px;
+  --sb-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --sb-duration: 420ms;
+
+  /* Venom button (light theme: ink-black symbiote) */
+  --venom-color: #0b0b12;
+  --venom-color-2: #3b2a63;
+  --venom-fg: #ffffff;
+
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #08080b;
+  --fg: #f2f2f5;
+  --muted: #8d8d9c;
+  --card: #121218;
+  --card-2: #1b1b23;
+  --border: rgb(255 255 255 / 0.07);
+  --accent: #a78bfa;
+  --accent-fg: #0b0b12;
+  --ring: rgb(167 139 250 / 0.5);
+
+  --sb-active-bg: var(--fg);
+  --sb-active-fg: var(--bg);
+
+  /* Dark theme: a pale, glossy symbiote reads better than black-on-black */
+  --venom-color: #f1f0ff;
+  --venom-color-2: #a594f9;
+  --venom-fg: #0b0b12;
+
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-card: var(--card);
+  --color-card-2: var(--card-2);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+  }
+}
