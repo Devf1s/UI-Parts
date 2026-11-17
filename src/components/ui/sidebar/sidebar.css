@@ -1,0 +1,64 @@
+/*
+ * Desktop rail <-> expanded panel.
+ * The panel is ALWAYS laid out at its expanded width; we only change its
+ * clip-path. No width animation means no reflow of the sidebar or the page,
+ * and clip-path also clips hit-testing, so the hidden part never steals clicks.
+ */
+.sb-panel {
+  width: var(--sb-w);
+  clip-path: inset(0 calc(100% - var(--sb-rail)) 0 0 round var(--sb-radius));
+  transition: clip-path var(--sb-duration) var(--sb-ease);
+  pointer-events: auto;
+  contain: layout paint style;
+}
+
+[data-open="true"] > .sb-panel {
+  clip-path: inset(0 0 0 0 round var(--sb-radius));
+}
+
+/* Labels slide/fade in with a small per-row stagger (--i is set inline). */
+.sb-label {
+  opacity: 0;
+  transform: translate3d(-6px, 0, 0);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+[data-open="true"] .sb-label {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 260ms ease calc(60ms + var(--i, 0) * 22ms),
+    transform 380ms var(--sb-ease) calc(60ms + var(--i, 0) * 22ms);
+}
+
+/* Active pill + hover wash: in the rail they shrink to a rounded square around the icon. */
+.sb-pill {
+  clip-path: inset(0 calc(100% - 48px) 0 0 round 14px);
+  transition: clip-path var(--sb-duration) var(--sb-ease);
+}
+
+[data-open="true"] .sb-pill {
+  clip-path: inset(0 0 0 0 round 14px);
+}
+
+/* Collapsed-only hints (badge dot, section divider) fade the opposite way. */
+.sb-collapsed-only {
+  opacity: 1;
+  transition: opacity 200ms ease 120ms;
+}
+
+[data-open="true"] .sb-collapsed-only {
+  opacity: 0;
+  transition-delay: 0ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-panel,
+  .sb-pill,
+  .sb-label,
+  [data-open="true"] .sb-label {
+    transition: none;
+  }
+}
