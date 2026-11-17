@@ -120,3 +120,31 @@ html.venom-glove * {
     transform: none;
   }
 }
+
+/*
+ * WebGL renderer active: the canvas draws the slab, label and goo, so the DOM button only keeps its
+ * box (for layout, hit-testing and focus) and its label stays in place, transparent, for a11y.
+ */
+.venom-btn.venom-btn--gl {
+  background: transparent;
+  text-shadow: none;
+  transform: none;
+  transition: none;
+}
+.venom-btn.venom-btn--gl:not(:focus-visible) {
+  box-shadow: none;
+}
+.venom-btn.venom-btn--gl:focus-visible {
+  box-shadow:
+    0 0 0 3px var(--bg),
+    0 0 0 5px var(--ring);
+}
+.venom-btn--gl::before,
+.venom-btn--gl::after {
+  display: none;
+}
+.venom-btn--gl .venom-label,
+.venom-btn--gl .venom-label svg {
+  color: transparent;
+  background: none;
+}

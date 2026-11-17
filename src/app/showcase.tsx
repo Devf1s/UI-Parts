@@ -120,7 +120,7 @@ export function Showcase() {
               <Swatch
                 label="Toxic"
                 style={{ "--venom-color": "#0f2e12", "--venom-color-2": "#4ade80", "--venom-fg": "#eaffea" } as React.CSSProperties}
-                props={{ gravity: 650, thickness: 1.4 }}
+                props={{ gravity: 1800, thickness: 1.4 }}
               />
               <Swatch
                 label="Carnage"
