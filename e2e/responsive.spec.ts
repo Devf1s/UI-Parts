@@ -32,9 +32,9 @@ test.describe("responsive layout", () => {
   test("content never sits under the rail", async ({ page }) => {
     test.skip(!hasRail(page), "drawer layout");
     await open(page);
-    const rail = await page.locator("nav[aria-label=Main] .sb-panel").boundingBox();
+    const rail = await page.locator("nav[aria-label=Main] .sb-glass").boundingBox();
     const h1 = await page.locator("h1").boundingBox();
-    const railVisibleRight = rail!.x + 72; // collapsed width
+    const railVisibleRight = rail!.x + 76; // collapsed width
     expect(h1!.x).toBeGreaterThanOrEqual(railVisibleRight);
   });
 

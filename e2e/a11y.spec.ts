@@ -24,6 +24,7 @@ for (const scheme of ["light", "dark"] as const) {
       if (hasRail(page)) {
         if (info.project.name === "desktop") {
           await page.mouse.move(30, 300);
+          await expect(page.getByRole("navigation", { name: "Main" })).toHaveAttribute("data-open", "true");
           await page.getByRole("button", { name: "Pin sidebar open" }).click();
         } else {
           await page.getByRole("button", { name: "Expand sidebar" }).tap();

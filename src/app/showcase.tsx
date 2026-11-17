@@ -5,11 +5,14 @@ import {
   Briefcase,
   Code2,
   FolderKanban,
+  Gem,
   Home,
+  Layers,
   Mail,
+  Palette,
   PenLine,
-  Sparkles,
 } from "lucide-react";
+import { useId } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Sidebar, type SidebarSection } from "@/components/ui/sidebar";
 import { VenomButton } from "@/components/ui/venom-button";
@@ -17,24 +20,27 @@ import { useScrollSpy } from "@/hooks/use-scroll-spy";
 
 const SECTIONS: SidebarSection[] = [
   {
-    title: "Portfolio",
+    title: "Menu",
     items: [
       { id: "home", label: "Home", href: "#home", icon: <Home /> },
-      { id: "projects", label: "Projects", href: "#projects", icon: <FolderKanban />, badge: 6 },
-      { id: "skills", label: "Skills", href: "#skills", icon: <Code2 /> },
-      { id: "experience", label: "Experience", href: "#experience", icon: <Briefcase /> },
-    ],
-  },
-  {
-    title: "More",
-    items: [
-      { id: "blog", label: "Blog", href: "#blog", icon: <PenLine />, badge: "new" },
-      { id: "contact", label: "Contact", href: "#contact", icon: <Mail /> },
+      {
+        id: "work",
+        label: "Work",
+        icon: <Layers />,
+        defaultOpen: true,
+        items: [
+          { id: "projects", label: "Projects", href: "#projects", icon: <FolderKanban />, badge: 6 },
+          { id: "skills", label: "Skills", href: "#skills", icon: <Code2 /> },
+          { id: "experience", label: "Experience", href: "#experience", icon: <Briefcase /> },
+        ],
+      },
+      { id: "blog", label: "Blog", href: "#blog", icon: <PenLine />, chevron: true },
+      { id: "contact", label: "Contact", href: "#contact", icon: <Mail />, chevron: true },
     ],
   },
 ];
 
-const IDS = SECTIONS.flatMap((s) => s.items.map((i) => i.id));
+const IDS = SECTIONS.flatMap((s) => s.items.flatMap((i) => (i.items ? i.items.map((c) => c.id) : [i.id])));
 
 export function Showcase() {
   const [active, setActive] = useScrollSpy(IDS);
@@ -47,35 +53,47 @@ export function Showcase() {
         onNavigate={(item) => setActive(item.id)}
         brand={{
           logo: (
-            <span className="grid size-10 place-items-center rounded-xl bg-fg text-bg">
-              <Sparkles className="size-[18px]" />
+            <span className="sb-tile size-10 text-[var(--sb-fg)]">
+              <Gem className="size-[18px]" strokeWidth={1.8} />
+            </span>
+          ),
+          name: "Lumen",
+        }}
+        profile={{
+          avatar: (
+            <span className="grid size-full place-items-center bg-gradient-to-br from-zinc-700 to-zinc-950 text-sm font-semibold text-white">
+              YN
             </span>
           ),
           name: "Your Name",
-          subtitle: "Frontend developer",
+          badge: "PRO",
+          meta: "Frontend developer",
+          online: true,
         }}
+        card={<NoticeCard />}
         footer={({ open }) => (
-          <div className="flex items-center gap-3">
-            <span className="grid size-12 shrink-0 place-items-center">
-              <span className="size-9 rounded-full bg-gradient-to-br from-violet-400 to-fuchsia-600" />
+          <div className="flex items-center">
+            <span className="grid w-12 shrink-0 place-items-center">
+              <span className="sb-tile size-[34px] text-[var(--sb-muted)]">
+                <Palette className="size-[17px]" />
+              </span>
             </span>
             <div
-              className="flex min-w-0 flex-1 items-center justify-between gap-2 transition-opacity duration-300"
+              className="flex min-w-0 flex-1 items-center justify-between gap-2 pl-1.5 transition-opacity duration-300"
               style={{ opacity: open ? 1 : 0 }}
               // inert, not aria-hidden: hidden content must not stay keyboard-focusable
               inert={!open}
             >
-              <div className="min-w-0 leading-tight">
-                <div className="truncate text-sm font-medium">Your Name</div>
-                <div className="truncate text-xs text-muted">Open to work</div>
-              </div>
+              <span className="text-sm font-medium text-[var(--sb-muted)]">Theme</span>
               <ThemeToggle />
             </div>
           </div>
         )}
       />
 
-      <main className="overflow-x-clip px-4 pb-24 pt-20 sm:px-8 md:pl-[calc(72px+2.5rem)] md:pt-10 lg:pr-12">
+      <Backdrop />
+
+      <main className="overflow-x-clip px-4 pb-24 pt-20 sm:px-8 md:pl-[calc(76px+2.5rem)] md:pt-10 lg:pr-12">
         <div className="mx-auto max-w-5xl">
           <Hero />
           <DemoSection id="projects" title="Projects" kicker="06 selected">
@@ -205,4 +223,73 @@ function Swatch({
 
 function Placeholder() {
   return <div className="h-64 rounded-3xl bg-card shadow-[inset_0_0_0_1px_var(--border)]" />;
+}
+
+/** Original bulletin card for the sidebar: paper on the left, a glass gem on the right. */
+function NoticeCard() {
+  // the card renders in both the rail and the drawer: gradient ids must be unique per copy
+  const id = `gem${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  return (
+    <a
+      href="#projects"
+      className="group/card relative flex h-[104px] overflow-hidden rounded-2xl shadow-[0_0_0_1px_var(--sb-tile-border),0_10px_24px_-14px_var(--sb-shadow)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+    >
+      <div className="flex w-[52%] flex-col justify-between bg-[#efebe4] px-3 py-2.5 text-[#141418]">
+        <span className="font-mono text-[8px] uppercase tracking-[0.2em] text-[#141418]/60">Bulletin · 03</span>
+        <span className="text-[19px] font-extrabold uppercase leading-none tracking-tight">Now&nbsp;live</span>
+        <span className="font-mono text-[8px] uppercase tracking-[0.16em] text-[#141418]/60">What&rsquo;s new · v2.0</span>
+      </div>
+      <div className="relative flex-1 bg-[radial-gradient(120%_90%_at_60%_40%,#2b2a44,#0d0d16)]">
+        <svg viewBox="0 0 80 80" className="absolute inset-0 m-auto size-[78px] transition-transform duration-500 group-hover/card:-translate-y-1 group-hover/card:rotate-6" aria-hidden>
+          <defs>
+            <linearGradient id={`${id}l`} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor="#e8f2ff" />
+              <stop offset="1" stopColor="#7aa2ff" />
+            </linearGradient>
+            <linearGradient id={`${id}r`} x1="1" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#b9a6ff" />
+              <stop offset="1" stopColor="#3a3ad1" />
+            </linearGradient>
+          </defs>
+          <ellipse cx="40" cy="46" rx="30" ry="7" fill="none" stroke="#c9c6ff" strokeOpacity="0.45" strokeWidth="0.8" transform="rotate(-12 40 46)" />
+          <path d="M40 8 L27 40 L40 72 Z" fill={`url(#${id}l)`} />
+          <path d="M40 8 L53 40 L40 72 Z" fill={`url(#${id}r)`} />
+          <path d="M27 40 L40 46 L53 40" fill="none" stroke="#fff" strokeOpacity="0.5" strokeWidth="0.6" />
+          <circle cx="62" cy="18" r="1.2" fill="#fff" />
+          <circle cx="16" cy="58" r="0.8" fill="#fff" opacity="0.7" />
+        </svg>
+        <span className="absolute bottom-2 right-2.5 font-mono text-[7.5px] uppercase tracking-[0.18em] text-white/70">Read more ›</span>
+      </div>
+    </a>
+  );
+}
+
+/**
+ * Fixed decorative backdrop: soft monochrome swooshes give the glass something to bend.
+ * One static SVG, no animation, so it costs a single paint.
+ */
+function Backdrop() {
+  return (
+    <svg
+      aria-hidden
+      className="pointer-events-none fixed inset-0 -z-10 h-full w-full text-fg"
+      viewBox="0 0 1440 900"
+      preserveAspectRatio="xMidYMid slice"
+    >
+      <defs>
+        <linearGradient id="bd-a" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="currentColor" stopOpacity="0.12" />
+          <stop offset="1" stopColor="currentColor" stopOpacity="0.02" />
+        </linearGradient>
+        <linearGradient id="bd-b" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0" stopColor="currentColor" stopOpacity="0.22" />
+          <stop offset="0.6" stopColor="currentColor" stopOpacity="0.05" />
+          <stop offset="1" stopColor="currentColor" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d="M-120 330 C 260 120 620 140 980 300 S 1500 420 1620 260 L1620 -40 L-120 -40 Z" fill="url(#bd-a)" />
+      <path d="M-160 520 C 200 330 540 360 860 520 S 1380 700 1600 520" fill="none" stroke="url(#bd-b)" strokeWidth="90" strokeLinecap="round" />
+      <path d="M-100 860 C 300 700 700 720 1040 820 S 1460 900 1620 780 L1620 1000 L-100 1000 Z" fill="url(#bd-a)" />
+    </svg>
+  );
 }

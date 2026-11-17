@@ -5,7 +5,7 @@ Small, production-minded UI components for a portfolio landing, built with
 
 | Component | What it does |
 | --- | --- |
-| `Sidebar` | Floating rail that expands on hover (desktop), on tap (touch tablets) and turns into a swipeable drawer on phones. Shared-layout active pill, staggered labels, badges, scroll-spy friendly. |
+| `Sidebar` | Curved glass panel: a slab with an hourglass waist, lens refraction at the rim (Chromium) or frosted blur elsewhere, and an iridescent rim light. Rail that expands on hover (desktop), on tap (touch tablets), swipeable drawer on phones. Profile card, nested groups on a tree line, sliding glass pill, promo card, scroll-spy friendly. |
 | `VenomButton` | Glossy black "symbiote" pill. Strings fizz on the edge as the cursor nears, 2–6 tendrils lunge out and coil around the cursor (a cartoon glove), stretch, bead and web together as you pull, then pinch off and recoil. Idle bursts keep it alive. |
 
 ```bash
@@ -22,11 +22,22 @@ import { Sidebar } from "@/components/ui/sidebar";
 import { VenomButton } from "@/components/ui/venom-button";
 
 <Sidebar
-  sections={[{ title: "Portfolio", items: [{ id: "home", label: "Home", href: "#home", icon: <Home /> }] }]}
+  sections={[
+    {
+      title: "Menu",
+      items: [
+        { id: "home", label: "Home", href: "#home", icon: <Home /> },
+        { id: "work", label: "Work", icon: <Layers />, items: [{ id: "projects", label: "Projects", href: "#projects" }] },
+        { id: "contact", label: "Contact", href: "#contact", icon: <Mail />, chevron: true },
+      ],
+    },
+  ]}
   activeId={active}
   onNavigate={(item) => setActive(item.id)}
-  brand={{ logo: <Logo />, name: "Your Name", subtitle: "Frontend developer" }}
-  footer={({ open }) => <UserCard compact={!open} />}
+  brand={{ logo: <Logo />, name: "Lumen" }}
+  profile={{ avatar: <Avatar />, name: "Your Name", badge: "PRO", meta: "Frontend developer", online: true }}
+  card={<NoticeCard />}
+  footer={({ open }) => <ThemeRow inert={!open} />}
 />
 
 <VenomButton tendrils={6} reach={140}>let’s collaborate</VenomButton>
@@ -36,15 +47,20 @@ import { VenomButton } from "@/components/ui/venom-button";
 
 | Prop | Default | Notes |
 | --- | --- | --- |
-| `sections` | — | `{ title?, items: { id, label, href, icon, badge? }[] }[]` |
+| `sections` | — | `{ title?, items: { id, label, href?, icon?, badge?, chevron?, items?, defaultOpen? }[] }[]`. An item with `items` is a foldable group drawn on a tree line; a group holding the active item stays open. |
 | `activeId` / `onNavigate` | — | Controlled active item. Pair with `useScrollSpy`. |
-| `brand`, `footer` | — | `footer` may be a function of `{ open }`. |
-| `collapsedWidth` / `expandedWidth` | `72` / `264` | px |
+| `brand`, `profile`, `card`, `footer` | — | `profile` = `{ avatar, name, badge?, meta?, online? }` (only the avatar shows in the rail). `card` shows while expanded. `footer` may be a function of `{ open }`. |
+| `collapsedWidth` / `expandedWidth` | `76` / `288` | px |
+| `curve` | `12` | How far the long edges bow in at the waist, px. `0` = straight slab. |
+| `radius` | `26` | Corner radius of the glass, px. |
+| `refraction` | `"auto"` | Lens at the rim. `"auto"` = Chromium desktop with ≥ 4 cores; elsewhere a frosted blur. |
 | `expandOnHover` | `true` | Only on devices with a fine pointer. |
 | `defaultPinned` | `false` | Start expanded on desktop. |
 | `mobileQuery` | `(max-width: 767px)` | Below it the sidebar is a drawer. |
 
-CSS variables: `--sb-bg --sb-fg --sb-muted --sb-hover --sb-active-bg --sb-active-fg --sb-radius --sb-ease --sb-duration`.
+CSS variables (light and dark values in `globals.css`): glass `--sb-glass --sb-sheen --sb-blur --sb-solid`,
+text `--sb-fg --sb-muted`, lines `--sb-line --sb-line-strong`, pill and tiles `--sb-pill --sb-pill-border --sb-tile
+--sb-tile-border --sb-tile-active --sb-tile-active-fg`, rim `--sb-rim --sb-rim-2`, `--sb-shadow --sb-glow`, motion `--sb-ease --sb-duration`.
 
 ### VenomButton props
 
@@ -75,8 +91,13 @@ CSS variables: `--venom-color` (body and ink), `--venom-color-2` (highlight), `-
 ## Performance notes
 
 - **Sidebar never animates `width`.** The panel is always laid out at its expanded width and only
-  its `clip-path` changes, so nothing reflows. `clip-path` also clips hit-testing, so the hidden
-  part never blocks clicks. Labels animate `opacity`/`transform` only.
+  its curved `clip-path: path()` changes (driven by one Motion value, no React renders), so nothing
+  reflows. `clip-path` also clips hit-testing, so the hidden part never blocks clicks. Labels
+  animate `opacity`/`transform` only; groups fold with `grid-template-rows`, no measuring.
+- **Glass:** the refraction map is computed once per panel size and cached; the lens is an SVG
+  filter in `backdrop-filter` (bend, then blur). The drop shadow is two static, masked layers on
+  their own compositor layer, cross-faded on open/close instead of re-blurred every frame.
+  `prefers-reduced-transparency` gets a solid panel.
 - **Active pill** uses Motion's shared layout (`layoutId`), which animates transforms.
 - **Motion is lazy-loaded** with `LazyMotion` + `m` components, so animation features are split
   out of the first JS chunk. `MotionConfig reducedMotion="user"` respects the OS setting.
@@ -124,4 +145,6 @@ The venom button recreates the effect from the reel by xitij / exteestudio
 Behaviour and numbers (launch distances, lunge spring, volume conservation, viscous flow, 1.6× snap,
 beads, webs, finger wraps, idle bursts) follow its documentation; the code here is a separate
 implementation for this stack: a 2D canvas instead of ray-marched WebGL, a CSS body, and original glove artwork.
-The sidebar follows the collapsible rail + mobile drawer pattern of Linear-style dashboards.
+The sidebar recreates the look of the "Curved Sidebar" reel by code.xr (glass slab, refraction,
+profile, tree of sub-items, sliding glass pill, bulletin card) from the video alone; code, gem
+artwork and copy are original.

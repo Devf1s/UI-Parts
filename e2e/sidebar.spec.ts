@@ -4,11 +4,11 @@ import { hasRail, open } from "./helpers";
 const nav = (page: Page) => page.getByRole("navigation", { name: "Main" });
 /** Visible width of the rail, measured by hit-testing (clip-path clips hits too). */
 const visibleWidth = (page: Page) =>
-  page.locator("nav[aria-label=Main] .sb-panel").evaluate((el) => {
+  page.locator("nav[aria-label=Main] .sb-glass").evaluate((el) => {
     const r = el.getBoundingClientRect();
     const y = r.top + r.height / 2;
-    let x = r.left;
-    while (x < r.right && el.contains(document.elementFromPoint(x + 1, y))) x += 4;
+    let x = r.left + 12; // start inside: the left edge bows in a little at the waist
+    while (x < r.right && el.contains(document.elementFromPoint(x, y))) x += 4;
     return x - r.left;
   });
 
@@ -32,6 +32,7 @@ test.describe("sidebar: rail", () => {
   test("pin keeps it open and is announced", async ({ page }, info) => {
     test.skip(info.project.name !== "desktop", "touch rails pin via the logo (next test)");
     await page.mouse.move(30, 300);
+    await expect(nav(page)).toHaveAttribute("data-open", "true");
     const pin = page.getByRole("button", { name: "Pin sidebar open" });
     await pin.click();
     const unpin = page.getByRole("button", { name: "Unpin sidebar" });
@@ -54,7 +55,7 @@ test.describe("sidebar: rail", () => {
   test("keyboard: focus opens it (on touch tablets too) and links are reachable", async ({ page }) => {
     await page.keyboard.press("Tab");
     await expect(nav(page)).toHaveAttribute("data-open", "true");
-    const links = nav(page).getByRole("link");
+    const links = nav(page).getByRole("listitem").getByRole("link"); // menu links, not the promo card
     await expect(links).toHaveCount(6);
     for (let i = 0; i < 8 && !(await links.nth(1).evaluate((el) => el === document.activeElement)); i++) {
       await page.keyboard.press("Tab");
@@ -90,11 +91,66 @@ test.describe("sidebar: rail", () => {
   test("animates clip-path only, never width (no layout thrash)", async ({ page }, info) => {
     test.skip(info.project.name !== "desktop", "needs hover");
     const before = await page.locator("main").boundingBox();
-    const width = await page.locator(".sb-panel").evaluate((el) => el.getBoundingClientRect().width);
+    const width = await page.locator("nav .sb-glass").evaluate((el) => el.getBoundingClientRect().width);
     await page.mouse.move(30, 300);
     await expect(nav(page)).toHaveAttribute("data-open", "true");
-    expect(await page.locator(".sb-panel").evaluate((el) => el.getBoundingClientRect().width)).toBe(width);
+    expect(await page.locator("nav .sb-glass").evaluate((el) => el.getBoundingClientRect().width)).toBe(width);
     expect(await page.locator("main").boundingBox()).toEqual(before);
+  });
+});
+
+test.describe("sidebar: groups and glass", () => {
+  test.beforeEach(async ({ page }) => {
+    test.skip(!hasRail(page), "drawer layout");
+    await open(page);
+  });
+
+  test("a group folds its children away and hands the active state to its header", async ({ page }) => {
+    const work = nav(page).getByRole("button", { name: "Work" });
+    await nav(page).getByRole("link", { name: "Skills" }).click({ position: { x: 24, y: 20 } });
+    await expect(work).toHaveAttribute("aria-expanded", "true");
+    await work.click({ position: { x: 24, y: 22 } });
+    await expect(work).toHaveAttribute("aria-expanded", "false");
+    // folded children are inert: they can't take focus
+    const skills = nav(page).locator('a[href="#skills"]');
+    expect(await skills.evaluate((el) => (el.focus(), document.activeElement === el))).toBe(false);
+    await expect(work.locator(".sb-glass-pill")).toHaveCount(1);
+    await work.click({ position: { x: 24, y: 22 } });
+    await expect(nav(page).getByRole("link", { name: "Skills" })).toHaveAttribute("aria-current", "page");
+  });
+
+  test("curved outline: both long edges bow in at the waist", async ({ page }) => {
+    const clip = await page.locator("nav .sb-glass").evaluate((el) => getComputedStyle(el).clipPath);
+    expect(clip).toMatch(/^path\(/);
+    // hit-test the right edge near the top and at the waist
+    const edgeAt = (fy: number) =>
+      page.locator("nav .sb-glass").evaluate((el, fy) => {
+        const r = el.getBoundingClientRect();
+        const y = r.top + r.height * fy;
+        let x = r.left;
+        while (x < r.right && el.contains(document.elementFromPoint(x + 0.5, y))) x += 1;
+        return x - r.left;
+      }, fy);
+    expect((await edgeAt(0.1)) - (await edgeAt(0.5))).toBeGreaterThan(3);
+  });
+
+  test("refraction on desktop Chromium, frosted fallback on touch", async ({ page }, info) => {
+    const bf = await page.locator("nav .sb-glass").evaluate((el) => getComputedStyle(el).backdropFilter);
+    if (info.project.name === "desktop") expect(bf).toMatch(/^url\(/);
+    else expect(bf).toMatch(/blur/);
+  });
+});
+
+test.describe("sidebar: reduced transparency", () => {
+  test.use({ contextOptions: { reducedMotion: "reduce" } });
+
+  test("solid panel when transparency is reduced", async ({ page }) => {
+    test.skip(!hasRail(page), "drawer layout");
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-transparency", value: "reduce" }] });
+    await open(page);
+    const s = await page.locator("nav .sb-glass").evaluate((el) => getComputedStyle(el));
+    expect(s.backdropFilter).toBe("none");
   });
 });
 

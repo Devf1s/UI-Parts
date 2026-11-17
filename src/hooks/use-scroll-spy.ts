@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 
 /**
- * Returns the id of the section that currently sits in the middle band of the viewport.
- * The last section is often too short to ever reach that band, so it also wins whenever it is
+ * Returns the id of the section that currently crosses a line 30% down the viewport.
+ * The last section is often too short to ever reach that line, so it also wins whenever it is
  * fully on screen (i.e. the page is scrolled to the bottom).
  */
 export function useScrollSpy(ids: string[], initial = ids[0]) {
@@ -28,7 +28,9 @@ export function useScrollSpy(ids: string[], initial = ids[0]) {
         if (hit) middle = hit.target.id;
         if (!atEnd) setActive(middle);
       },
-      { rootMargin: "-45% 0px -50% 0px" },
+      // a thin line 30% down the viewport: a section clicked in the nav (scrolled to the top)
+      // always covers it, even when it is shorter than half a screen
+      { rootMargin: "-30% 0px -69% 0px" },
     );
     const end = new IntersectionObserver(
       ([e]) => {

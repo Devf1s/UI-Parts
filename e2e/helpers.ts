@@ -12,6 +12,8 @@ export async function open(page: Page, path = "/") {
   });
   await page.goto(path);
   await page.locator(".venom-btn").first().waitFor();
+  // hydrated: the theme switch only marks its option checked after mount
+  await page.locator('[role="radio"][aria-checked="true"]').first().waitFor({ state: "attached" });
   return {
     errors,
     expectNoErrors: () => expect(errors, errors.join("\n")).toEqual([]),
