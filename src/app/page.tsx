@@ -1,9 +1,5 @@
-import { ThemeToggle } from "@/components/theme-toggle";
+import { Showcase } from "./showcase";
 
 export default function Page() {
-  return (
-    <main className="grid min-h-dvh place-items-center">
-      <ThemeToggle />
-    </main>
-  );
+  return <Showcase />;
 }
