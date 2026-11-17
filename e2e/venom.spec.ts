@@ -6,7 +6,10 @@ const hero = (page: Page) => page.locator(".venom-btn").first();
 /** Counts non-transparent pixels on the hero's canvas: a cheap "is anything drawn" probe. */
 const inkPixels = (page: Page) =>
   page.locator("canvas").first().evaluate((c: HTMLCanvasElement) => {
-    const d = c.getContext("2d")!.getImageData(0, 0, c.width, c.height).data;
+    // null while the WebGL attempt still owns the canvas (it is swapped for a 2D one without a GPU)
+    const ctx = c.getContext("2d");
+    if (!ctx) return 0;
+    const d = ctx.getImageData(0, 0, c.width, c.height).data;
     let n = 0;
     for (let i = 3; i < d.length; i += 16) if (d[i] > 20) n++;
     return n;

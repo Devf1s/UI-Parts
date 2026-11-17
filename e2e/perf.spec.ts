@@ -172,14 +172,21 @@ test("off-screen buttons stop animating", async ({ page }, info) => {
         new Promise<number>((r) => {
           const hero = document.querySelector("canvas");
           let n = 0;
-          const orig = CanvasRenderingContext2D.prototype.clearRect;
+          // a 2D frame starts with clearRect, a WebGL frame ends with drawArrays
+          const clear = CanvasRenderingContext2D.prototype.clearRect;
+          const draw = WebGL2RenderingContext.prototype.drawArrays;
           CanvasRenderingContext2D.prototype.clearRect = function (...a) {
             if (this.canvas === hero) n++;
-            return orig.apply(this, a);
+            return clear.apply(this, a);
+          };
+          WebGL2RenderingContext.prototype.drawArrays = function (...a) {
+            if (this.canvas === hero) n += 1 / 3; // three passes per frame
+            return draw.apply(this, a);
           };
           setTimeout(() => {
-            CanvasRenderingContext2D.prototype.clearRect = orig;
-            r(n);
+            CanvasRenderingContext2D.prototype.clearRect = clear;
+            WebGL2RenderingContext.prototype.drawArrays = draw;
+            r(Math.round(n));
           }, 1000);
         }),
     );
