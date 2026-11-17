@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronRight, Menu, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
+import { ArrowLeftToLine, ArrowRightToLine, ChevronDown, ChevronRight, Menu, X } from "lucide-react";
 import {
   animate,
   AnimatePresence,
@@ -201,7 +201,7 @@ export function Sidebar({
                   tabIndex={open ? 0 : -1}
                   className={cn("sb-label", "sb-tile sb-tile-btn ml-auto size-9 shrink-0")}
                 >
-                  {pinned ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
+                  {pinned ? <ArrowLeftToLine className="size-4" /> : <ArrowRightToLine className="size-4" />}
                 </button>
               }
               onBrandClick={canHover ? undefined : () => setPinned((p) => !p)}
@@ -278,6 +278,7 @@ function GlassPanel({
   const reduced = usePrefersReducedMotion();
   const panelRef = useRef<HTMLDivElement>(null);
   const rimRef = useRef<SVGPathElement>(null);
+  const rimInRef = useRef<SVGPathElement>(null);
   const [h, setH] = useState(0);
   const [refract, setRefract] = useState(false);
   const progress = useMotionValue(open ? 1 : 0);
@@ -305,7 +306,8 @@ function GlassPanel({
       const w = rail + (width - rail) * p;
       const bow = curve * (0.55 + 0.45 * p);
       panelRef.current.style.clipPath = `path("${shapePath({ w, h, r: radius, bow })}")`;
-      rimRef.current?.setAttribute("d", shapePath({ w, h, r: radius, bow, inset: 0.5 }));
+      rimRef.current?.setAttribute("d", shapePath({ w, h, r: radius, bow, inset: 0.75 }));
+      rimInRef.current?.setAttribute("d", shapePath({ w, h, r: radius, bow, inset: 2.5 }));
     },
     [h, rail, width, curve, radius],
   );
@@ -323,7 +325,7 @@ function GlassPanel({
     return () => a.stop();
   }, [open, reduced, progress]);
 
-  const map = useMemo(() => (refract && h ? displacementMap(width, h, radius, 28) : ""), [refract, h, width, radius]);
+  const map = useMemo(() => (refract && h ? displacementMap(width, h, radius, 34) : ""), [refract, h, width, radius]);
   const filterId = `sb-glass-${uid}`;
   return (
     <div className={cn("absolute inset-0", className)} style={style}>
@@ -343,7 +345,7 @@ function GlassPanel({
           <filter id={filterId} x="0" y="0" width="1" height="1" filterUnits="objectBoundingBox" colorInterpolationFilters="sRGB">
             <feImage href={map} x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="map" />
             {/* bend first, then frost: blurring last hides any sample Chrome leaves unfiltered */}
-            <feDisplacementMap in="SourceGraphic" in2="map" scale="48" xChannelSelector="R" yChannelSelector="G" result="bentRaw" />
+            <feDisplacementMap in="SourceGraphic" in2="map" scale="60" xChannelSelector="R" yChannelSelector="G" result="bentRaw" />
             <feGaussianBlur in="bentRaw" stdDeviation="7" edgeMode="duplicate" result="bent" />
             <feColorMatrix in="bent" type="saturate" values="1.5" />
           </filter>
@@ -372,7 +374,9 @@ function GlassPanel({
             <stop offset="1" stopColor="var(--sb-rim-2)" />
           </linearGradient>
         </defs>
-        <path ref={rimRef} fill="none" stroke={`url(#${filterId}-rim)`} strokeWidth="1.25" />
+        {/* outer rim + a faint inner one: reads as the thickness of the glass edge */}
+        <path ref={rimRef} fill="none" stroke={`url(#${filterId}-rim)`} strokeWidth="1.5" />
+        <path ref={rimInRef} fill="none" stroke="var(--sb-rim)" strokeOpacity="0.14" strokeWidth="1" />
       </svg>
     </div>
   );
