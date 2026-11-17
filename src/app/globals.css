@@ -93,7 +93,7 @@
   --venom-color: #0d0d14;
   --venom-color-2: #b4a5ff;
   --venom-fg: #ffffff;
-  --venom-edge: rgb(180 165 255 / 0.45);
+  --venom-edge: rgb(180 165 255 / 0.3);
 
   color-scheme: dark;
 }

@@ -64,23 +64,156 @@ export function gloveSites(p: GlovePose): (Site & { half: number })[] {
 
 const LIGHT = { x: -0.6, y: -0.8 };
 
-function tube(ctx: CanvasRenderingContext2D, t: Tendril, sim: VenomSim, widthOf: (r: number) => number, dx = 0, dy = 0, offK = 0) {
-  // one stroke per segment so the width can vary along the strand; round caps hide the joints
-  for (let j = 0; j < N - 1; j++) {
-    const r = sim.radius(t, (j + 0.5) / (N - 1));
-    const w = widthOf(r);
-    if (w <= 0.05) continue;
-    const ox = dx * r * offK, oy = dy * r * offK;
-    const sx = j === 0 ? t.x[0] : (t.x[j - 1] + t.x[j]) / 2;
-    const sy = j === 0 ? t.y[0] : (t.y[j - 1] + t.y[j]) / 2;
-    const ex = j === N - 2 ? t.x[j + 1] : (t.x[j] + t.x[j + 1]) / 2;
-    const ey = j === N - 2 ? t.y[j + 1] : (t.y[j] + t.y[j + 1]) / 2;
-    ctx.lineWidth = w;
-    ctx.beginPath();
-    ctx.moveTo(sx + ox, sy + oy);
-    ctx.quadraticCurveTo(t.x[j] + ox, t.y[j] + oy, ex + ox, ey + oy);
-    ctx.stroke();
+/** Cheap deterministic hash → [0, 1). */
+function h01(a: number, b: number) {
+  const x = Math.sin(a * 127.1 + b * 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+/** How many thin fibres one guide strand is drawn as. 6 guides × 4 = up to 24 strands. */
+export const FIBERS = 4;
+const FP = 18; // points per fibre
+
+/** Half-width of the stretch of edge a strand's fibres are glued to, px. */
+function rootSpread(t: Tendril) {
+  return 12 + 22 * Math.min(1, t.len / 120);
+}
+
+// Fibre layout for the strand being drawn, reused by every pass (edge, membranes, ink, gloss).
+const BX = new Float32Array(FIBERS * FP), BY = new Float32Array(FIBERS * FP), BW = new Float32Array(FIBERS * FP);
+
+/**
+ * One guide strand from the physics becomes a loose bundle of thin fibres, like the reference:
+ * - roots fan out along the edge and are glued to the body (thick at the base, see `skirt`),
+ * - mid-length they sway apart (each with its own phase), the tips converge on the finger,
+ * - width follows the guide's radius, so stretching, beading and the pinch-off still read.
+ * Returns the fibre count; points land in BX/BY/BW.
+ */
+function layoutFibres(t: Tendril, sim: VenomSim) {
+  const O = sim.outline;
+  const attached = t.state !== "frag";
+  const n = attached ? FIBERS : 2;
+  const spread = attached ? rootSpread(t) : 2;
+  const stretch = Math.min(2, Math.max(0.6, t.stretch));
+  const g0x = t.x[0], g0y = t.y[0];
+  for (let k = 0; k < n; k++) {
+    const r1 = h01(t.seed, k), r2 = h01(t.seed + 3.1, k), r3 = h01(t.seed + 7.7, k);
+    const f = k / (n - 1) - 0.5 + (r1 - 0.5) * 0.18;
+    let rdx = 0, rdy = 0;
+    if (attached) {
+      const rp = O.at(t.s + f * spread * 2);
+      rdx = rp.x - rp.nx * 0.8 - g0x;
+      rdy = rp.y - rp.ny * 0.8 - g0y;
+    }
+    const amp = (2.4 + 5 * r2) * (0.55 + 0.6 * Math.max(0, stretch - 0.8)) + t.len * (0.015 + 0.03 * r3);
+    const freq = 4 + r1 * 5, phase = r3 * 6.283;
+    const w0 = (0.95 + 1.05 * r2) * sim.cfg.thickness;
+    for (let i = 0; i < FP; i++) {
+      const u = i / (FP - 1);
+      const p = pointOn(t, u);
+      const a = pointOn(t, Math.max(0, u - 0.04)), b = pointOn(t, Math.min(1, u + 0.04));
+      const tx = b.x - a.x, ty = b.y - a.y, tl = Math.hypot(tx, ty) || 1;
+      const nx = -ty / tl, ny = tx / tl;
+      const glue = Math.pow(1 - u, 1.4);
+      const lat = f * 2.4 * u + amp * Math.sin(Math.PI * u) * Math.sin(freq * u + phase + sim.time * 1.6);
+      const o = k * FP + i;
+      BX[o] = p.x + rdx * glue + nx * lat;
+      BY[o] = p.y + rdy * glue + ny * lat;
+      const r = sim.radius(t, u);
+      // flare at the root (adhesion), taper at the tip, vanish where the guide pinches off
+      BW[o] = w0 * (1 + 2.4 * Math.pow(1 - u, 6)) * (0.55 + 0.45 * (1 - u)) * Math.min(1, r / 0.9);
+    }
   }
+  return n;
+}
+
+/**
+ * Opaque ink: one stroke per segment so the width can follow the fibre (round caps hide joints).
+ * Translucent passes (outline, gloss) use one path per fibre instead: overlapping caps would
+ * double the alpha at every joint and read as beads.
+ */
+function strokeFibres(ctx: CanvasRenderingContext2D, n: number, widen: number, sheen: boolean) {
+  const whole = sheen || widen > 0;
+  for (let k = 0; k < n; k++) {
+    const o = k * FP;
+    if (whole) {
+      let wsum = 0;
+      for (let j = 0; j < FP; j++) wsum += BW[o + j];
+      const wm = wsum / FP;
+      if (wm <= 0.08) continue;
+      const ox = sheen ? LIGHT.x * wm * 0.3 : 0, oy = sheen ? LIGHT.y * wm * 0.3 : 0;
+      ctx.lineWidth = sheen ? Math.max(0.3, wm * 0.3) : wm + widen;
+      ctx.beginPath();
+      ctx.moveTo(BX[o] + ox, BY[o] + oy);
+      for (let j = 1; j < FP - 1; j++) {
+        ctx.quadraticCurveTo(BX[o + j] + ox, BY[o + j] + oy, (BX[o + j] + BX[o + j + 1]) / 2 + ox, (BY[o + j] + BY[o + j + 1]) / 2 + oy);
+      }
+      ctx.lineTo(BX[o + FP - 1] + ox, BY[o + FP - 1] + oy);
+      ctx.stroke();
+      continue;
+    }
+    for (let j = 0; j < FP - 1; j++) {
+      const wj = BW[o + j];
+      if (wj <= 0.08) continue;
+      const sx = j === 0 ? BX[o] : (BX[o + j - 1] + BX[o + j]) / 2, sy = j === 0 ? BY[o] : (BY[o + j - 1] + BY[o + j]) / 2;
+      const ex = j === FP - 2 ? BX[o + j + 1] : (BX[o + j] + BX[o + j + 1]) / 2;
+      const ey = j === FP - 2 ? BY[o + j + 1] : (BY[o + j] + BY[o + j + 1]) / 2;
+      ctx.lineWidth = wj;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.quadraticCurveTo(BX[o + j], BY[o + j], ex, ey);
+      ctx.stroke();
+    }
+  }
+}
+
+/**
+ * Sticky membranes between neighbouring fibre roots: the goo has not let go of itself yet, so
+ * the first stretch of each pair is joined by a sheet with a concave free edge (a meniscus).
+ */
+function fillMembranes(ctx: CanvasRenderingContext2D, n: number, t: Tendril) {
+  const m = Math.max(2, Math.round(FP * (0.12 + 0.1 * Math.min(1, t.R / 40)))); // how far up the sheet reaches
+  for (let k = 0; k < n - 1; k++) {
+    const a = k * FP, b = (k + 1) * FP;
+    ctx.beginPath();
+    ctx.moveTo(BX[a], BY[a]);
+    for (let i = 1; i <= m; i++) ctx.lineTo(BX[a + i], BY[a + i]);
+    // concave free edge: sag back toward the roots
+    const mx = (BX[a + m] + BX[b + m]) / 2, my = (BY[a + m] + BY[b + m]) / 2;
+    const rx = (BX[a] + BX[b]) / 2, ry = (BY[a] + BY[b]) / 2;
+    ctx.quadraticCurveTo(rx + (mx - rx) * 0.35, ry + (my - ry) * 0.35, BX[b + m], BY[b + m]);
+    for (let i = m - 1; i >= 0; i--) ctx.lineTo(BX[b + i], BY[b + i]);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+/**
+ * Adhesion: where a strand leaves the body, the goo stays glued to the edge as a low meniscus
+ * spanning all its fibre roots, so the strands look stuck to the button rather than poked in.
+ */
+function skirt(ctx: CanvasRenderingContext2D, t: Tendril, sim: VenomSim) {
+  const k = Math.min(1, t.R / 18); // shrinks as a recoiling strand sinks back in
+  if (k < 0.05) return;
+  const O = sim.outline;
+  const half = rootSpread(t) + 5;
+  const h = (3.5 + 5 * Math.min(1, t.len / 90)) * k * sim.cfg.thickness;
+  const STEPS = 14;
+  ctx.beginPath();
+  for (let i = 0; i <= STEPS; i++) {
+    const v = i / STEPS;
+    const p = O.at(t.s + (v * 2 - 1) * half * (0.6 + 0.4 * k));
+    const bump = h * Math.pow(Math.sin(Math.PI * v), 0.75) * (1 + 0.15 * Math.sin(sim.time * 2 + t.seed + v * 9));
+    if (i === 0) ctx.moveTo(p.x - p.nx * 1.5, p.y - p.ny * 1.5);
+    ctx.lineTo(p.x + p.nx * bump, p.y + p.ny * bump);
+  }
+  for (let i = STEPS; i >= 0; i--) {
+    const v = i / STEPS;
+    const p = O.at(t.s + (v * 2 - 1) * half * (0.6 + 0.4 * k));
+    ctx.lineTo(p.x - p.nx * 1.5, p.y - p.ny * 1.5);
+  }
+  ctx.closePath();
+  ctx.fill();
 }
 
 function spike(ctx: CanvasRenderingContext2D, bx: number, by: number, nx: number, ny: number, len: number, base: number, lean: number, curl: number) {
@@ -140,14 +273,14 @@ export function drawVenom(
 
   // Surface strings: awareness fizz on the facing edge.
   if (sim.awareness > 0.02) {
-    for (let i = 0; i < 9; i++) {
-      const off = (i - 4) * 8.5;
-      const env = Math.exp(-((off / 30) ** 2));
+    for (let i = 0; i < 17; i++) {
+      const off = (i - 8) * 5.2;
+      const env = Math.exp(-((off / 34) ** 2));
       const p = O.at(sim.focusS + off);
       const wob = Math.sin(sim.time * 7 + i * 1.7);
       const len = sim.awareness * env * (5 + 9 * ((i * 0.618) % 1)) * (0.85 + 0.15 * wob);
       const lean = (sim.pointerDir.x * -p.ny + sim.pointerDir.y * p.nx) * 0.9;
-      spike(ctx, p.x, p.y, p.nx, p.ny, len, 1.6 + len * 0.08, lean, wob * 1.5);
+      spike(ctx, p.x, p.y, p.nx, p.ny, len * (1.1 + 0.5 * ((i * 0.37) % 1)), 1.1 + len * 0.06, lean, wob * 1.8);
     }
   }
   // Idle bursts: a few strings curl out, glide along the edge and sink back.
@@ -159,17 +292,8 @@ export function drawVenom(
     }
   }
 
-  // Root puddles: a fillet where each strand leaves the body.
-  for (const t of sim.tendrils) {
-    if (t.state === "frag") continue;
-    const p = O.at(t.s);
-    const k = Math.min(1, t.R / 18); // puddle shrinks as a recoiling strand sinks back in
-    const r0 = Math.min(sim.radius(t, 0), 2.4) * k;
-    if (r0 < 0.2) continue;
-    ctx.beginPath();
-    ctx.ellipse(p.x - p.nx * 0.5, p.y - p.ny * 0.5, r0 * 2.1 + 3 * k, r0 + 1.6 * k, Math.atan2(p.ny, p.nx) + Math.PI / 2, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  // Adhesion skirts: goo glued along the edge under each strand's roots.
+  for (const t of sim.tendrils) if (t.state !== "frag") skirt(ctx, t, sim);
 
   // Coil backs, tucked under the glove.
   if (sites) {
@@ -194,22 +318,22 @@ export function drawVenom(
     }
   }
 
-  // Strands
+  // Strands, each drawn as a bundle of thin fibres
   for (const t of sim.tendrils) {
     if (t.R < 0.6) continue;
+    const n = layoutFibres(t, sim);
     if (palette.edge) {
       ctx.strokeStyle = palette.edge;
-      tube(ctx, t, sim, (r) => r * 2 + 1.4);
+      strokeFibres(ctx, n, 0.9, false);
     }
     ctx.strokeStyle = palette.ink;
-    tube(ctx, t, sim, (r) => r * 2);
-    // wet gloss: broad sheen + sharp specular, offset toward the light
+    ctx.fillStyle = palette.ink;
+    if (t.state !== "frag") fillMembranes(ctx, n, t);
+    strokeFibres(ctx, n, 0, false);
+    // wet gloss: a hairline offset toward the light
     ctx.strokeStyle = palette.sheen;
-    ctx.globalAlpha = 0.28;
-    tube(ctx, t, sim, (r) => (r > 0.5 ? r * 0.7 : 0), LIGHT.x, LIGHT.y, 0.35);
-    ctx.strokeStyle = "#ffffff";
-    ctx.globalAlpha = 0.7;
-    tube(ctx, t, sim, (r) => (r > 0.8 ? Math.max(0.3, r * 0.22) : 0), LIGHT.x, LIGHT.y, 0.55);
+    ctx.globalAlpha = 0.35;
+    strokeFibres(ctx, n, 0, true);
     ctx.globalAlpha = 1;
 
     // Mozzarella fibres peel off a stretched strand.
