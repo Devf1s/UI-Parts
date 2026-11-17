@@ -28,10 +28,12 @@
   --sb-ease: cubic-bezier(0.32, 0.72, 0, 1);
   --sb-duration: 420ms;
 
-  /* Venom button (light theme: ink-black symbiote) */
+  /* Venom button: body colour and the coloured rim light on the goo */
   --venom-color: #0b0b12;
-  --venom-color-2: #3b2a63;
+  --venom-color-2: #7c6bd6;
   --venom-fg: #ffffff;
+  /* optional outline around the strands; "none" in light theme */
+  --venom-edge: none;
 
   color-scheme: light;
 }
@@ -50,10 +52,11 @@
   --sb-active-bg: var(--fg);
   --sb-active-fg: var(--bg);
 
-  /* Dark theme: a pale, glossy symbiote reads better than black-on-black */
-  --venom-color: #f1f0ff;
-  --venom-color-2: #a594f9;
-  --venom-fg: #0b0b12;
+  /* Dark theme: same black symbiote, the brighter rim separates it from the page */
+  --venom-color: #0d0d14;
+  --venom-color-2: #b4a5ff;
+  --venom-fg: #ffffff;
+  --venom-edge: rgb(180 165 255 / 0.45);
 
   color-scheme: dark;
 }

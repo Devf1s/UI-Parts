@@ -6,7 +6,7 @@ Small, production-minded UI components for a portfolio landing, built with
 | Component | What it does |
 | --- | --- |
 | `Sidebar` | Floating rail that expands on hover (desktop), on tap (touch tablets) and turns into a swipeable drawer on phones. Shared-layout active pill, staggered labels, badges, scroll-spy friendly. |
-| `VenomButton` | A button that grows a liquid, symbiote-like tendril toward the cursor, swells on hover and splashes droplets on click/tap. |
+| `VenomButton` | Glossy black "symbiote" pill. A bundle of thin ink strands lunges at the cursor (a cartoon glove), grabs it, sags while you drag, and snaps strand by strand when you pull away. |
 
 ```bash
 npm install
@@ -28,7 +28,7 @@ import { VenomButton } from "@/components/ui/venom-button";
   footer={({ open }) => <UserCard compact={!open} />}
 />
 
-<VenomButton reach={160} viscosity={10} headSize={16}>Say hello</VenomButton>
+<VenomButton reach={240} tendrils={20}>let’s collaborate</VenomButton>
 ```
 
 ### Sidebar props
@@ -51,20 +51,22 @@ All native `<button>` props, plus:
 
 | Prop | Default | Notes |
 | --- | --- | --- |
-| `reach` | `140` | px from the edge where the tendril starts reaching. |
-| `tendrils` | `9` | Blobs in the strand. |
-| `headSize` | `14` | Radius of the blob under the cursor. |
-| `viscosity` | `9` | Goo blur radius. Higher is thicker. |
-| `stiffness` | `1` | How tightly the blob follows the pointer. |
+| `reach` | `230` | A held strand snaps once stretched past this length, px. |
+| `sense` | `170` | How close to the edge the cursor must come to wake the strands, px. |
+| `tendrils` | `16` | Strands in the bundle (max 40). |
+| `thickness` | `1` | Strand thickness multiplier. |
+| `gravity` | `0.32` | Sag and drip. |
+| `stiffness` | `1` | Lunge/follow speed. |
 | `radius` | pill | Corner radius of the body, px. |
-| `splash` | `7` | Droplets on click. `0` disables. |
-| `hideCursor` | `false` | Hide the native cursor over the button. |
+| `splash` | `10` | Ink droplets on click. `0` disables. |
+| `cursor` | `"glove"` | `"glove"` swaps the cursor for a cartoon glove near the button, `"native"` keeps it. |
+| `autoplay` | `"touch"` | Ghost glove plays the effect when nobody points. `true`, `false` or `"touch"` (touch screens only). |
 
-CSS variables: `--venom-color --venom-color-2 --venom-fg`. Set them on any parent to re-skin
-(see the "Toxic" and "Carnage" variants on the demo page).
+CSS variables: `--venom-color` (body and ink), `--venom-color-2` (highlight), `--venom-fg` (label),
+`--venom-edge` (outline around strands, used in dark theme so ink reads on a dark page).
 
-> The goo is drawn in an SVG that overflows the button by `reach` px. Avoid `overflow: hidden`
-> on the direct parent, or use `overflow: clip` higher up as the demo page does.
+> The strands are drawn on a canvas that overflows the button by `max(reach, sense)` px. Avoid
+> `overflow: hidden` on the direct parent, or use `overflow: clip` higher up as the demo page does.
 
 ## Performance notes
 
@@ -74,11 +76,13 @@ CSS variables: `--venom-color --venom-color-2 --venom-fg`. Set them on any paren
 - **Active pill** uses Motion's shared layout (`layoutId`), which animates transforms.
 - **Motion is lazy-loaded** with `LazyMotion` + `m` components, so animation features are split
   out of the first JS chunk. `MotionConfig reducedMotion="user"` respects the OS setting.
-- **VenomButton runs one `requestAnimationFrame` loop** that writes SVG attributes directly
-  (zero React re-renders per frame), reads layout at most once per frame from a cached rect,
-  and goes to sleep as soon as the goo settles or the button scrolls out of view
-  (`IntersectionObserver`). Far-away pointer moves are rejected without waking the loop.
-- The goo filter covers only the button plus `reach`, never the whole viewport.
+- **VenomButton body is pure CSS** (gradients, inset shadows, a blurred specular pseudo-element).
+  Only the strands are drawn, on a 2D canvas sized to the button plus reach.
+- **One `requestAnimationFrame` loop** runs verlet physics for the strands and draws them
+  (zero React re-renders per frame). Layout is read from a cached rect, refreshed on scroll/resize.
+  The loop sleeps as soon as the strands settle or the button scrolls out of view
+  (`IntersectionObserver`); far-away pointer moves are rejected without waking it.
+- The body lean toward the cursor is a CSS-variable `transform`, so it stays on the compositor.
 - Scroll-spy uses `IntersectionObserver`, not scroll listeners.
 
 ## Responsive & accessibility
@@ -86,13 +90,13 @@ CSS variables: `--venom-color --venom-color-2 --venom-fg`. Set them on any paren
 - Phone: drawer with backdrop, swipe-left to close, `Esc`, scroll lock, focus moved inside.
 - Tablet (touch): rail, tap the logo or the pin button to expand, tap outside to close.
 - Desktop: hover to peek (with a 60 ms intent delay), pin to keep it open, keyboard focus expands it.
-- VenomButton on touch: a tap spawns the tendril and splash at the finger, then it retracts.
+- VenomButton on touch: a ghost glove plays the effect on its own; a tap makes the strands grab the finger, then snap.
 - `prefers-reduced-motion`: static button, no loop or listeners; sidebar transitions are instant.
 - Light, dark and system themes via `next-themes`; all colours are CSS tokens in `globals.css`.
 
 ## References
 
-The original Instagram reels could not be opened from the build environment, so the components
-follow the well-known patterns they belong to: the "metaball / gooey" SVG filter technique
-(blur + alpha colour matrix) for the venom effect, and the collapsible rail + mobile drawer
-pattern popularised by Linear-style dashboards and Aceternity UI's sidebar.
+The venom button recreates the effect from the reel by xitij (exteestudio,
+[live demo](https://exteestudio.github.io/venom-button/)). The implementation here is written
+from scratch for this stack: verlet ropes on a 2D canvas, CSS body, original glove artwork.
+The sidebar follows the collapsible rail + mobile drawer pattern of Linear-style dashboards.

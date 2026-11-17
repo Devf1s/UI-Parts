@@ -1,0 +1,80 @@
+/*
+ * Glossy symbiote pill. Pure CSS so the body is crisp at any DPR and costs nothing per frame;
+ * only the strands are drawn on a canvas. Re-skin with --venom-color / --venom-color-2 / --venom-fg.
+ */
+.venom-btn {
+  --vx: 0px;
+  --vy: 0px;
+  --vs: 1;
+  position: relative;
+  isolation: isolate;
+  color: var(--venom-fg);
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--venom-color) 82%, #fff) 0%, var(--venom-color) 38%, var(--venom-color) 100%);
+  box-shadow:
+    0 22px 34px -16px rgb(0 0 0 / 0.55),
+    0 6px 12px -4px rgb(0 0 0 / 0.3),
+    inset 0 1.5px 0 rgb(255 255 255 / 0.22),
+    inset 0 -10px 18px -6px rgb(0 0 0 / 0.65),
+    inset 0 0 0 1px rgb(255 255 255 / 0.06);
+  transform: translate3d(var(--vx), var(--vy), 0) scale(var(--vs));
+  transition: --vs 160ms ease;
+  text-shadow: 0 1px 0 rgb(0 0 0 / 0.35);
+}
+
+/* Specular reflection streak, like a lacquered sticker. */
+.venom-btn::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 4%;
+  top: 7%;
+  width: 58%;
+  height: 46%;
+  border-radius: 999px 999px 50% 50% / 999px 999px 30% 30%;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.3), rgb(255 255 255 / 0.02) 90%);
+  filter: blur(1.5px);
+  pointer-events: none;
+}
+
+/* Soft rim light on the lower edge. */
+.venom-btn::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: auto 10% 6% 10%;
+  height: 22%;
+  border-radius: 999px;
+  background: radial-gradient(60% 100% at 50% 100%, color-mix(in oklab, var(--venom-color-2) 18%, transparent), transparent 70%);
+  pointer-events: none;
+}
+
+.venom-btn:active {
+  --vs: 0.97;
+}
+
+.dark .venom-btn {
+  box-shadow:
+    0 22px 34px -16px rgb(0 0 0 / 0.8),
+    inset 0 1.5px 0 rgb(255 255 255 / 0.25),
+    inset 0 -10px 18px -6px rgb(0 0 0 / 0.65),
+    inset 0 0 0 1px color-mix(in oklab, var(--venom-color-2) 28%, transparent);
+}
+
+/* Native cursor is replaced by the glove while it is near the button. */
+html.venom-glove,
+html.venom-glove * {
+  cursor: none !important;
+}
+
+@property --vs {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .venom-btn {
+    transform: none;
+  }
+}

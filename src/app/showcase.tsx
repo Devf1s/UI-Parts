@@ -101,12 +101,12 @@ export function Showcase() {
               <Swatch
                 label="Toxic"
                 style={{ "--venom-color": "#0f2e12", "--venom-color-2": "#4ade80", "--venom-fg": "#eaffea" } as React.CSSProperties}
-                props={{ viscosity: 11, headSize: 16 }}
+                props={{ gravity: 0.55, thickness: 1.4 }}
               />
               <Swatch
                 label="Carnage"
                 style={{ "--venom-color": "#4a0a0a", "--venom-color-2": "#ef4444", "--venom-fg": "#fff" } as React.CSSProperties}
-                props={{ radius: 14, tendrils: 12, stiffness: 1.4 }}
+                props={{ radius: 14, tendrils: 26, stiffness: 1.4 }}
               />
             </div>
           </DemoSection>
@@ -147,9 +147,7 @@ function Hero() {
         symbiote reaches out for it.
       </p>
       <div className="mt-12 flex flex-wrap items-center gap-x-10 gap-y-8">
-        <VenomButton hideCursor>
-          View projects <ArrowUpRight className="size-4" />
-        </VenomButton>
+        <VenomButton className="h-16 px-10 text-lg">let&rsquo;s collaborate</VenomButton>
         <a href="#contact" className="text-sm font-medium text-muted underline-offset-4 hover:text-fg hover:underline">
           or get in touch
         </a>
