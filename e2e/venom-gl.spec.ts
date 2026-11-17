@@ -50,6 +50,9 @@ test.describe("venom button, WebGL renderer", () => {
   // on every device, and touch input + the fallback are covered by venom.spec.ts on all of them
   test.beforeEach(async ({ page }, info) => {
     test.skip(info.project.name !== "desktop", "software WebGL is too slow at high DPR");
+    // even at DPR 1 a software rasteriser draws about one frame a second on CI runners, and every real
+    // input event waits for a frame, so these tests get triple the default budget
+    test.slow();
     await page.addInitScript(() => ((window as unknown as { __VENOM_GL__: string }).__VENOM_GL__ = "force"));
   });
 
