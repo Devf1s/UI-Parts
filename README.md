@@ -12,6 +12,7 @@ Small, production-minded UI components for a portfolio landing, built with
 npm install
 npm run dev     # http://localhost:3000
 npm run build   # production build + type check
+npm run test:all  # lint, types, unit, build, e2e (see Testing)
 ```
 
 ## Usage
@@ -92,10 +93,29 @@ CSS variables: `--venom-color` (body and ink), `--venom-color-2` (highlight), `-
 
 - Phone: drawer with backdrop, swipe-left to close, `Esc`, scroll lock, focus moved inside.
 - Tablet (touch): rail, tap the logo or the pin button to expand, tap outside to close.
-- Desktop: hover to peek (with a 60 ms intent delay), pin to keep it open, keyboard focus expands it.
+- Desktop: hover to peek (with a 60 ms intent delay), pin to keep it open.
+- Keyboard focus expands the rail on every device, including touch tablets with a keyboard; a tap does not.
 - VenomButton on touch: a ghost glove plays the effect on its own; a tap makes the strands grab the finger, then snap.
 - `prefers-reduced-motion`: static button, no loop or listeners; sidebar transitions are instant.
 - Light, dark and system themes via `next-themes`; all colours are CSS tokens in `globals.css`.
+
+## Testing
+
+| Command | What runs |
+| --- | --- |
+| `npm test` | Vitest unit tests for the venom physics: outline geometry, sense/reach thresholds, tendril cap, grab, snap and sleep, stability under erratic input, determinism. |
+| `npm run test:e2e` | Playwright against the production build (`npm run build` first) on four devices: desktop 1440×900, iPad Mini, Pixel 7, iPhone SE. |
+| `npm run test:all` | Lint, types, unit, build and e2e, the same as CI. |
+
+The e2e suite covers:
+
+- **Responsive:** no horizontal scroll, rail vs drawer per breakpoint, content clear of the rail, readable text, landscape, tap targets ≥ 24 px (WCAG 2.5.8).
+- **Accessibility:** axe (WCAG 2.2 AA + best practice) in light and dark, with the navigation closed and open; heading order, landmarks, hidden decorative canvases, reduced motion.
+- **Usability:** hover, pin, tap-to-open on tablets, keyboard navigation, scroll spy, drawer open/close by button, `Esc`, backdrop and swipe, scroll lock and focus.
+- **Venom button:** real labelled button, canvas never blocks clicks, mouse grab and release, touch autoplay, theme switch.
+- **Performance budgets:** LCP < 2.5 s, CLS < 0.1, first-load JS < 250 kB compressed, idle main thread < 10 %, p95 frame < 50 ms with 4× CPU throttle, off-screen canvases stop drawing.
+
+CI (`.github/workflows/ci.yml`) runs all of it on every pull request. If you already have Chromium installed, point the tests at it with `PW_CHROMIUM_PATH=/path/to/chrome`.
 
 ## References
 
