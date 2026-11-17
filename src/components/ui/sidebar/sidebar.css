@@ -1,0 +1,148 @@
+/*
+ * Curved glass sidebar.
+ * The panel is ALWAYS laid out at its expanded width; collapsing only changes its clip-path
+ * (a curved outline driven from JS). No width animation means no reflow of the sidebar or the
+ * page, and clip-path also clips hit-testing, so the hidden part never steals clicks.
+ */
+
+/* ---------- glass ---------- */
+.sb-glass {
+  background:
+    linear-gradient(180deg, var(--sb-sheen) 0%, transparent 22%),
+    var(--sb-glass);
+}
+
+/* Frosted fallback (Safari, Firefox, phones): blur + saturate, no lens. */
+.sb-fallback {
+  -webkit-backdrop-filter: blur(var(--sb-blur)) saturate(1.6);
+  backdrop-filter: blur(var(--sb-blur)) saturate(1.6);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .sb-glass {
+    background: var(--sb-solid);
+  }
+}
+
+/* Users who ask for less transparency get a solid panel. */
+@media (prefers-reduced-transparency: reduce) {
+  .sb-glass {
+    background: var(--sb-solid) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+/* Glass icon tile */
+.sb-tile {
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--sb-tile);
+  box-shadow:
+    inset 0 0 0 1px var(--sb-tile-border),
+    inset 0 1px 0 var(--sb-tile-hi);
+  transition:
+    background-color 300ms ease,
+    color 300ms ease,
+    box-shadow 300ms ease;
+}
+
+.sb-tile-active {
+  background: var(--sb-tile-active);
+  color: var(--sb-tile-active-fg);
+  box-shadow:
+    inset 0 0 0 1px var(--sb-tile-border),
+    0 4px 14px -6px var(--sb-glow);
+}
+
+.sb-tile-btn {
+  color: var(--sb-muted);
+  outline: none;
+}
+.sb-tile-btn:hover {
+  color: var(--sb-fg);
+}
+.sb-tile-btn:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+/* Active pill: a small slab of brighter glass */
+.sb-glass-pill {
+  background: var(--sb-pill);
+  box-shadow:
+    inset 0 0 0 1px var(--sb-pill-border),
+    inset 0 1px 0 var(--sb-tile-hi),
+    0 6px 18px -10px var(--sb-shadow);
+}
+
+/* ---------- collapse / expand ---------- */
+
+/* Labels slide/fade in with a small per-row stagger (--i is set inline). */
+.sb-label {
+  opacity: 0;
+  transform: translate3d(-6px, 0, 0);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+[data-open="true"] .sb-label {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 260ms ease calc(60ms + var(--i, 0) * 18ms),
+    transform 380ms var(--sb-ease) calc(60ms + var(--i, 0) * 18ms);
+}
+
+/* Pills and hover wash: in the rail they shrink to a rounded square around the icon. */
+.sb-pill {
+  clip-path: inset(0 calc(100% - 48px) 0 0 round 14px);
+  transition: clip-path var(--sb-duration) var(--sb-ease);
+}
+
+[data-open="true"] .sb-pill {
+  clip-path: inset(0 0 0 0 round 14px);
+}
+
+/* Nested rows show only their tree dot in the rail. */
+.sb-pill-sub {
+  transition: opacity 200ms ease;
+}
+[data-open="false"] .sb-pill-sub {
+  opacity: 0 !important;
+}
+
+/* Collapsed-only hints (badge dot, section divider) fade the opposite way. */
+.sb-collapsed-only {
+  opacity: 1;
+  transition: opacity 200ms ease 120ms;
+}
+
+[data-open="true"] .sb-collapsed-only {
+  opacity: 0;
+  transition-delay: 0ms;
+}
+
+/* Nested group: height animates via grid rows, no JS measuring. */
+.sb-sub {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 360ms var(--sb-ease);
+}
+.sb-sub[data-expanded="true"] {
+  grid-template-rows: 1fr;
+}
+.sb-sub > * {
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-pill,
+  .sb-label,
+  .sb-sub,
+  [data-open="true"] .sb-label {
+    transition: none;
+  }
+}

@@ -17,21 +17,40 @@
   --accent-fg: #ffffff;
   --ring: rgb(109 40 217 / 0.45);
 
-  /* Sidebar */
-  --sb-bg: var(--card);
-  --sb-fg: var(--fg);
-  --sb-muted: var(--muted);
-  --sb-hover: var(--card-2);
-  --sb-active-bg: var(--fg);
-  --sb-active-fg: var(--bg);
-  --sb-radius: 22px;
+  /* Sidebar: curved glass */
+  --sb-glass: rgb(255 255 255 / 0.5);
+  --sb-sheen: rgb(255 255 255 / 0.45);
+  --sb-solid: #f3f3f6;
+  --sb-blur: 18px;
+  --sb-fg: #121218;
+  --sb-muted: #5b5b6b;
+  --sb-line: rgb(18 18 24 / 0.09);
+  --sb-line-strong: rgb(18 18 24 / 0.2);
+  --sb-hover: rgb(255 255 255 / 0.45);
+  --sb-pill: rgb(255 255 255 / 0.72);
+  --sb-pill-border: rgb(255 255 255 / 0.95);
+  --sb-tile: rgb(255 255 255 / 0.55);
+  --sb-tile-border: rgb(18 18 24 / 0.07);
+  --sb-tile-hi: rgb(255 255 255 / 0.8);
+  --sb-tile-active: #121218;
+  --sb-tile-active-fg: #ffffff;
+  --sb-rim: rgb(255 255 255 / 0.95);
+  --sb-rim-2: rgb(255 170 214 / 0.75);
+  --sb-glow: rgb(18 18 24 / 0.25);
+  --sb-shadow: rgb(20 20 40 / 0.28);
+  --sb-ring-bg: #f1f1f4;
+  --sb-badge-bg: #121218;
+  --sb-badge-fg: #ffffff;
+  --sb-radius: 26px;
   --sb-ease: cubic-bezier(0.32, 0.72, 0, 1);
   --sb-duration: 420ms;
 
-  /* Venom button (light theme: ink-black symbiote) */
+  /* Venom button: body colour and the coloured rim light on the goo */
   --venom-color: #0b0b12;
-  --venom-color-2: #3b2a63;
+  --venom-color-2: #b3aed0;
   --venom-fg: #ffffff;
+  /* optional outline around the strands; "none" in light theme */
+  --venom-edge: none;
 
   color-scheme: light;
 }
@@ -47,13 +66,34 @@
   --accent-fg: #0b0b12;
   --ring: rgb(167 139 250 / 0.5);
 
-  --sb-active-bg: var(--fg);
-  --sb-active-fg: var(--bg);
+  --sb-glass: rgb(40 40 50 / 0.5);
+  --sb-sheen: rgb(255 255 255 / 0.07);
+  --sb-solid: #17171d;
+  --sb-fg: #f4f4f7;
+  --sb-muted: #a3a3b2;
+  --sb-line: rgb(255 255 255 / 0.1);
+  --sb-line-strong: rgb(255 255 255 / 0.24);
+  --sb-hover: rgb(255 255 255 / 0.06);
+  --sb-pill: rgb(255 255 255 / 0.1);
+  --sb-pill-border: rgb(255 255 255 / 0.3);
+  --sb-tile: rgb(255 255 255 / 0.06);
+  --sb-tile-border: rgb(255 255 255 / 0.1);
+  --sb-tile-hi: rgb(255 255 255 / 0.12);
+  --sb-tile-active: #f4f4f7;
+  --sb-tile-active-fg: #121218;
+  --sb-rim: rgb(255 255 255 / 0.55);
+  --sb-rim-2: rgb(255 170 214 / 0.45);
+  --sb-glow: rgb(255 255 255 / 0.35);
+  --sb-shadow: rgb(0 0 0 / 0.6);
+  --sb-ring-bg: #2a2a33;
+  --sb-badge-bg: #f4f4f7;
+  --sb-badge-fg: #121218;
 
-  /* Dark theme: a pale, glossy symbiote reads better than black-on-black */
-  --venom-color: #f1f0ff;
-  --venom-color-2: #a594f9;
-  --venom-fg: #0b0b12;
+  /* Dark theme: same black symbiote, the brighter rim separates it from the page */
+  --venom-color: #0d0d14;
+  --venom-color-2: #b4a5ff;
+  --venom-fg: #ffffff;
+  --venom-edge: rgb(180 165 255 / 0.3);
 
   color-scheme: dark;
 }
