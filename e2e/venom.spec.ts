@@ -31,7 +31,7 @@ test.describe("venom button", () => {
     for (const c of await page.locator("canvas").all()) {
       await expect(c).toHaveCSS("pointer-events", "none");
     }
-    const link = page.getByRole("link", { name: "or get in touch" });
+    const link = page.locator('#home a[href="#contact"]');
     await link.click();
     await expect(page).toHaveURL(/#contact$/);
   });
