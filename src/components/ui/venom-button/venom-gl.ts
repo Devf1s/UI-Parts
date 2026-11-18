@@ -11,7 +11,7 @@
  */
 
 import { ARROW_SVG, HAND_SVG } from "./venom-cursors";
-import { FXAA, sceneFrag, shadeFrag, VERT, type ShaderLimits } from "./venom-shaders";
+import { FINAL, sceneFrag, shadeFrag, VERT, type ShaderLimits } from "./venom-shaders";
 
 export type VenomGLParams = {
   /** px from the edge where tendrils launch */
@@ -261,11 +261,13 @@ export function createVenomGL(
     "uBtnZ2", "uPull", "uPeak", "uNS", "uPts", "uBox", "uAnc", "uAncD", "uNBr", "uBr", "uNB", "uBlob", "uBlobZ", "uRip", "uZTop", "uK",
   ]);
   const p2 = program(shadeFrag(FLOAT), [
-    "uG", "uLabel", "uRes", "uDpr", "uTime", "uLabelBox", "uLabelTx", "uLabelAmt", "uLabelLod", "uIri", "uZMax", "uLift", "uBtnP",
-    "uBtnR", "uWin", "uBtnH", "uHandCol", "uArrowCol", "uMorph", "uHand", "uHand2", "uAlb", "uTint", "uSilver", "uFloorK",
+    "uG", "uRes", "uDpr", "uTime", "uIri", "uZMax", "uLift", "uBtnP",
+    "uBtnR", "uWin", "uBtnH", "uHandCol", "uArrowCol", "uMorph", "uHand", "uHand2", "uAlb", "uTint", "uFloorK",
     "uShadowA", "uShadowC", "uRim",
   ]);
-  const p3 = program(FXAA, ["uC", "uRes"]);
+  const p3 = program(FINAL, [
+    "uC", "uL", "uLabel", "uRes", "uOut", "uDprO", "uLabelBox", "uLabelTx", "uLabelAmt", "uLabelLod", "uSilver", "uTint", "uFloorK",
+  ]);
   const progs = [p1, p2, p3];
   let linked = false;
   function checkLinked() {
@@ -342,8 +344,9 @@ export function createVenomGL(
   const vao = gl.createVertexArray();
 
   // ── render targets
-  let W = 1, H = 1, DPR = 1, cssW = 1, cssH = 1, dprWanted = 1, quality = 1;
-  let gTex: WebGLTexture | null = null, cTex: WebGLTexture | null = null;
+  // W×H: the scene targets (scaled by adaptive quality); OW×OH: the canvas, always at full device resolution
+  let W = 1, H = 1, OW = 1, OH = 1, DPR = 1, DPRO = 1, cssW = 1, cssH = 1, dprWanted = 1, quality = 1;
+  let gTex: WebGLTexture | null = null, cTex: WebGLTexture | null = null, lTex: WebGLTexture | null = null;
   const fbo = gl.createFramebuffer(), cFbo = gl.createFramebuffer();
   function makeTargets() {
     if (gTex) gl!.deleteTexture(gTex);
@@ -365,18 +368,33 @@ export function createVenomGL(
     gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MAG_FILTER, gl!.LINEAR);
     gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_S, gl!.CLAMP_TO_EDGE);
     gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_T, gl!.CLAMP_TO_EDGE);
+    if (lTex) gl!.deleteTexture(lTex);
+    lTex = gl!.createTexture();
+    gl!.bindTexture(gl!.TEXTURE_2D, lTex);
+    gl!.texStorage2D(gl!.TEXTURE_2D, 1, gl!.RGBA8, W, H);
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MIN_FILTER, gl!.LINEAR);
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MAG_FILTER, gl!.LINEAR);
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_S, gl!.CLAMP_TO_EDGE);
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_T, gl!.CLAMP_TO_EDGE);
     gl!.bindFramebuffer(gl!.FRAMEBUFFER, cFbo);
     gl!.framebufferTexture2D(gl!.FRAMEBUFFER, gl!.COLOR_ATTACHMENT0, gl!.TEXTURE_2D, cTex, 0);
+    gl!.framebufferTexture2D(gl!.FRAMEBUFFER, gl!.COLOR_ATTACHMENT1, gl!.TEXTURE_2D, lTex, 0);
+    gl!.drawBuffers([gl!.COLOR_ATTACHMENT0, gl!.COLOR_ATTACHMENT1]);
     gl!.bindFramebuffer(gl!.FRAMEBUFFER, null);
   }
   function applySize() {
     const w = Math.max(1, Math.round(cssW * dprWanted * quality));
     const h = Math.max(1, Math.round(cssH * dprWanted * quality));
+    const ow = Math.max(1, Math.round(cssW * dprWanted));
+    const oh = Math.max(1, Math.round(cssH * dprWanted));
+    if (ow !== OW || oh !== OH) {
+      OW = canvas.width = ow;
+      OH = canvas.height = oh;
+      DPRO = OW / cssW;
+    }
     if (w === W && h === H && gTex) return;
     W = w;
     H = h;
-    canvas.width = W;
-    canvas.height = H;
     DPR = W / cssW;
     makeTargets();
   }
@@ -1152,16 +1170,9 @@ export function createVenomGL(
     t.useProgram(p2.prog);
     const u2 = p2.u;
     t.uniform1i(u2.uG, 0);
-    t.uniform1i(u2.uLabel, 1);
-    t.activeTexture(t.TEXTURE1);
-    t.bindTexture(t.TEXTURE_2D, labelTex);
     t.uniform2f(u2.uRes, W, H);
     t.uniform1f(u2.uDpr, DPR);
     t.uniform1f(u2.uTime, time);
-    t.uniform4f(u2.uLabelBox, labelBox.cx, labelBox.cy, labelBox.hw, labelBox.hh);
-    t.uniform2f(u2.uLabelTx, 1.6 / labelW, 1.6 / labelH);
-    t.uniform1f(u2.uLabelAmt, labelAmt);
-    t.uniform1f(u2.uLabelLod, Math.max(0, Math.log2(labelW / (2 * labelBox.hw * DPR)) - 0.6));
     t.uniform1f(u2.uIri, P.sheen);
     t.uniform1f(u2.uZMax, zTop);
     t.uniform1f(u2.uLift, btn.lift);
@@ -1180,21 +1191,36 @@ export function createVenomGL(
     t.uniform1f(u2.uMorph, hand.m);
     t.uniform3fv(u2.uAlb, look.albedo);
     t.uniform3fv(u2.uTint, look.tint);
-    t.uniform3fv(u2.uSilver, look.label);
     t.uniform1f(u2.uFloorK, look.floor);
     t.uniform1f(u2.uShadowA, look.shadow);
     t.uniform3fv(u2.uShadowC, look.shadowColor);
     t.uniform4fv(u2.uRim, look.rim);
     t.drawArrays(t.TRIANGLES, 0, 3);
 
-    // pass 3: FXAA to the canvas
+    // pass 3: FXAA + the label, to the canvas at full resolution
     t.bindFramebuffer(t.FRAMEBUFFER, null);
-    t.viewport(0, 0, W, H);
+    t.viewport(0, 0, OW, OH);
     t.useProgram(p3.prog);
-    t.uniform1i(p3.u.uC, 4);
-    t.uniform2f(p3.u.uRes, W, H);
+    const u3 = p3.u;
+    t.uniform1i(u3.uC, 4);
     t.activeTexture(t.TEXTURE4);
     t.bindTexture(t.TEXTURE_2D, cTex);
+    t.uniform1i(u3.uL, 7);
+    t.activeTexture(t.TEXTURE7);
+    t.bindTexture(t.TEXTURE_2D, lTex);
+    t.uniform1i(u3.uLabel, 1);
+    t.activeTexture(t.TEXTURE1);
+    t.bindTexture(t.TEXTURE_2D, labelTex);
+    t.uniform2f(u3.uRes, W, H);
+    t.uniform2f(u3.uOut, OW, OH);
+    t.uniform1f(u3.uDprO, DPRO);
+    t.uniform4f(u3.uLabelBox, labelBox.cx, labelBox.cy, labelBox.hw, labelBox.hh);
+    t.uniform2f(u3.uLabelTx, 1.6 / labelW, 1.6 / labelH);
+    t.uniform1f(u3.uLabelAmt, labelAmt);
+    t.uniform1f(u3.uLabelLod, Math.max(0, Math.log2(labelW / (2 * labelBox.hw * DPRO)) - 0.6));
+    t.uniform3fv(u3.uSilver, look.label);
+    t.uniform3fv(u3.uTint, look.tint);
+    t.uniform1f(u3.uFloorK, look.floor);
     t.drawArrays(t.TRIANGLES, 0, 3);
     frameCount++;
   }
@@ -1316,7 +1342,7 @@ export function createVenomGL(
       canvas.removeEventListener("webglcontextlost", onLost);
       for (const p of progs) gl.deleteProgram(p.prog);
       for (const s of shaders) gl.deleteShader(s);
-      for (const tex of [gTex, cTex, labelTex, handColTex, handSdfTex, arrowColTex, arrowSdfTex]) gl.deleteTexture(tex);
+      for (const tex of [gTex, cTex, lTex, labelTex, handColTex, handSdfTex, arrowColTex, arrowSdfTex]) gl.deleteTexture(tex);
       gl.deleteFramebuffer(fbo);
       gl.deleteFramebuffer(cFbo);
       gl.deleteVertexArray(vao);

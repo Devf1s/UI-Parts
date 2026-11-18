@@ -57,17 +57,16 @@ export function Showcase() {
               <Gem className="size-[18px]" strokeWidth={1.8} />
             </span>
           ),
-          name: "Lumen",
+          name: "Lorem",
         }}
         profile={{
           avatar: (
             <span className="grid size-full place-items-center bg-gradient-to-br from-zinc-700 to-zinc-950 text-sm font-semibold text-white">
-              YN
+              LI
             </span>
           ),
-          name: "Your Name",
-          badge: "PRO",
-          meta: "Frontend developer",
+          name: "Lorem Ipsum",
+          meta: "Dolor sit amet",
           online: true,
         }}
         card={<NoticeCard />}
@@ -96,7 +95,7 @@ export function Showcase() {
       <main className="overflow-x-clip px-4 pb-24 pt-20 sm:px-8 md:pl-[calc(76px+2.5rem)] md:pt-10 lg:pr-12">
         <div className="mx-auto max-w-5xl">
           <Hero />
-          <DemoSection id="projects" title="Projects" kicker="06 selected">
+          <DemoSection id="projects" title="Lorem ipsum">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 6 }, (_, i) => (
                 <article
@@ -105,10 +104,10 @@ export function Showcase() {
                 >
                   <div className="mb-4 aspect-[4/3] rounded-2xl bg-card-2" />
                   <div className="flex items-center justify-between">
-                    <h3 className="font-medium">Project {String(i + 1).padStart(2, "0")}</h3>
+                    <h3 className="font-medium">Lorem {String(i + 1).padStart(2, "0")}</h3>
                     <ArrowUpRight className="size-4 text-muted transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                   </div>
-                  <p className="mt-1 text-sm text-muted">Next.js · TypeScript · Motion</p>
+                  <p className="mt-1 text-sm text-muted">Dolor sit amet</p>
                 </article>
               ))}
             </div>
@@ -130,19 +129,19 @@ export function Showcase() {
             </div>
           </DemoSection>
 
-          <DemoSection id="experience" title="Experience" kicker="placeholder">
+          <DemoSection id="experience" title="Dolor sit amet">
             <Placeholder />
           </DemoSection>
-          <DemoSection id="blog" title="Blog" kicker="placeholder">
+          <DemoSection id="blog" title="Consectetur">
             <Placeholder />
           </DemoSection>
 
           <section id="contact" className="scroll-mt-10 py-24 text-center">
-            <h2 className="text-3xl font-semibold tracking-tight sm:text-5xl">Got an idea?</h2>
-            <p className="mx-auto mt-3 max-w-md text-muted">Bring the cursor close to the button. On touch screens, tap it.</p>
+            <h2 className="text-3xl font-semibold tracking-tight sm:text-5xl">Lorem ipsum</h2>
+            <p className="mx-auto mt-3 max-w-md text-muted">Dolor sit amet, consectetur adipiscing elit.</p>
             <div className="mt-10">
               <VenomButton reach={140} className="h-14 px-9 text-base">
-                Say hello <ArrowUpRight className="size-4" />
+                Lorem ipsum <ArrowUpRight className="size-4" />
               </VenomButton>
             </div>
           </section>
@@ -155,20 +154,16 @@ export function Showcase() {
 function Hero() {
   return (
     <section id="home" className="flex min-h-[calc(100dvh-8rem)] scroll-mt-10 flex-col justify-center py-10">
-      <p className="mb-5 inline-flex w-fit items-center gap-2 rounded-full bg-card px-3 py-1 text-xs text-muted shadow-[inset_0_0_0_1px_var(--border)]">
-        <span className="size-1.5 rounded-full bg-emerald-500" /> Available for freelance
-      </p>
       <h1 className="max-w-3xl text-[clamp(2.4rem,7vw,5rem)] font-semibold leading-[0.95] tracking-[-0.04em]">
-        Interfaces that feel <span className="text-accent">alive</span>.
+        Lorem ipsum <span className="text-accent">dolor</span>.
       </h1>
       <p className="mt-6 max-w-xl text-base text-muted sm:text-lg">
-        Hover the sidebar on the left (or tap the menu on mobile), then move your cursor toward the button. The
-        symbiote reaches out for it.
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
       </p>
       <div className="mt-12 flex flex-wrap items-center gap-x-10 gap-y-8">
         <VenomButton className="h-16 px-10 text-lg">let&rsquo;s collaborate</VenomButton>
         <a href="#contact" className="inline-flex min-h-11 items-center text-sm font-medium text-muted underline-offset-4 hover:text-fg hover:underline">
-          or get in touch
+          Lorem ipsum
         </a>
       </div>
     </section>
@@ -183,14 +178,14 @@ function DemoSection({
 }: {
   id: string;
   title: string;
-  kicker: string;
+  kicker?: string;
   children: React.ReactNode;
 }) {
   return (
     <section id={id} className="scroll-mt-10 py-16">
       <div className="mb-8 flex items-baseline justify-between gap-4">
         <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h2>
-        <span className="font-mono text-xs uppercase tracking-widest text-muted">{kicker}</span>
+        {kicker && <span className="font-mono text-xs uppercase tracking-widest text-muted">{kicker}</span>}
       </div>
       {children}
     </section>
@@ -222,7 +217,12 @@ function Swatch({
 }
 
 function Placeholder() {
-  return <div className="h-64 rounded-3xl bg-card shadow-[inset_0_0_0_1px_var(--border)]" />;
+  return (
+    <div className="rounded-3xl bg-card p-6 text-muted shadow-[inset_0_0_0_1px_var(--border)] sm:p-8">
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+      <p className="mt-4">Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
+    </div>
+  );
 }
 
 /** Original bulletin card for the sidebar: paper on the left, a glass gem on the right. */
@@ -235,9 +235,9 @@ function NoticeCard() {
       className="group/card relative flex h-[104px] overflow-hidden rounded-2xl shadow-[0_0_0_1px_var(--sb-tile-border),0_10px_24px_-14px_var(--sb-shadow)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
     >
       <div className="flex w-[52%] flex-col justify-between bg-[#efebe4] px-3 py-2.5 text-[#141418]">
-        <span className="font-mono text-[8px] uppercase tracking-[0.2em] text-[#141418]/60">Bulletin · 03</span>
-        <span className="text-[19px] font-extrabold uppercase leading-none tracking-tight">Now&nbsp;live</span>
-        <span className="font-mono text-[8px] uppercase tracking-[0.16em] text-[#141418]/60">What&rsquo;s new · v2.0</span>
+        <span className="font-mono text-[8px] uppercase tracking-[0.2em] text-[#141418]/60">Lorem · 01</span>
+        <span className="text-[19px] font-extrabold uppercase leading-none tracking-tight">Ipsum</span>
+        <span className="font-mono text-[8px] uppercase tracking-[0.16em] text-[#141418]/60">Dolor sit</span>
       </div>
       <div className="relative flex-1 bg-[radial-gradient(120%_90%_at_60%_40%,#2b2a44,#0d0d16)]">
         <svg viewBox="0 0 80 80" className="absolute inset-0 m-auto size-[78px] transition-transform duration-500 group-hover/card:-translate-y-1 group-hover/card:rotate-6" aria-hidden>
@@ -258,7 +258,7 @@ function NoticeCard() {
           <circle cx="62" cy="18" r="1.2" fill="#fff" />
           <circle cx="16" cy="58" r="0.8" fill="#fff" opacity="0.7" />
         </svg>
-        <span className="absolute bottom-2 right-2.5 font-mono text-[7.5px] uppercase tracking-[0.18em] text-white/70">Read more ›</span>
+        <span className="absolute bottom-2 right-2.5 font-mono text-[7.5px] uppercase tracking-[0.18em] text-white/70">Amet ›</span>
       </div>
     </a>
   );
