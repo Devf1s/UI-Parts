@@ -3,6 +3,8 @@
 Small, production-minded UI components for a portfolio landing, built with
 **Next.js (App Router) · TypeScript · Tailwind CSS v4 · Motion · next-themes**.
 
+**Live demo:** https://ui-parts.vercel.app/
+
 | Component | What it does |
 | --- | --- |
 | `Sidebar` | Curved glass panel: a slab with an hourglass waist, lens refraction at the rim (Chromium) or frosted blur elsewhere, and an iridescent rim light. Rail that expands on hover (desktop), on tap (touch tablets), swipeable drawer on phones. Profile card, nested groups on a tree line, sliding glass pill, promo card, scroll-spy friendly. |
