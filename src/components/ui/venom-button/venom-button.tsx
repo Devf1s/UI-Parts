@@ -13,7 +13,7 @@ import {
 import { usePrefersReducedMotion } from "@/hooks/use-media-query";
 import { cn } from "@/lib/cn";
 import { drawVenom, getGlove, gloveSites, type GlovePose, type VenomPalette } from "./venom-draw";
-import { createVenomGL, type RGB, type VenomGL, type VenomGLParams, type VenomLook } from "./venom-gl";
+import type { RGB, VenomGL, VenomGLParams, VenomLook } from "./venom-gl";
 import { rasterLabel } from "./venom-label";
 import { VenomSim, type VenomConfig } from "./venom-sim";
 import "./venom-button.css";
@@ -392,29 +392,42 @@ export const VenomButton = forwardRef<HTMLButtonElement, VenomButtonProps>(funct
     const st = S.current;
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const start = () => {
+      st.coarse = window.matchMedia("(pointer: coarse)").matches;
+      st.rectDirty = true;
+      wake();
+    };
     if (renderer === "gl" && !st.gl) {
-      try {
-        const force = glFlag() === "force";
-        st.gl = createVenomGL(canvas, cfg.current.glParams, { allowSoftware: force });
-        if (force && st.gl) (canvas as HTMLCanvasElement & { __venom?: unknown }).__venom = { gl: st.gl, pause: () => (st.paused = true) };
-      } catch {
-        st.gl = null;
-      }
-      if (!st.gl) {
-        setRenderer("2d");
-        return;
-      }
-      st.layoutDirty = st.labelDirty = true;
-      readColors();
-    } else if (renderer === "2d" && !st.sim) {
+      // the WebGL engine is most of the button's code: fetch it only once a button is on screen
+      let live = true;
+      import("./venom-gl")
+        .then(({ createVenomGL }) => {
+          if (!live || st.gl) return;
+          const force = glFlag() === "force";
+          st.gl = createVenomGL(canvas, cfg.current.glParams, { allowSoftware: force });
+          if (force && st.gl) (canvas as HTMLCanvasElement & { __venom?: unknown }).__venom = { gl: st.gl, pause: () => (st.paused = true) };
+          if (!st.gl) throw new Error("no WebGL");
+          st.layoutDirty = st.labelDirty = true;
+          readColors();
+          start();
+        })
+        .catch(() => {
+          if (!live) return;
+          st.gl?.destroy();
+          st.gl = null;
+          setRenderer("2d");
+        });
+      return () => {
+        live = false;
+      };
+    }
+    if (renderer === "2d" && !st.sim) {
       st.ctx = canvas.getContext("2d");
       st.sim = new VenomSim(cfg.current.simCfg);
       getGlove();
       readColors();
     }
-    st.coarse = window.matchMedia("(pointer: coarse)").matches;
-    st.rectDirty = true;
-    wake();
+    start();
   }, [reduced, size, seen, renderer, wake, readColors]);
 
   useEffect(
