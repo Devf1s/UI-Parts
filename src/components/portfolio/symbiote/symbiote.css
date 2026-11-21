@@ -1,0 +1,88 @@
+/* Sample 1 · Symbiote. Paper and ink in light, oil on black in dark. */
+:root:has(.pf-symbiote) {
+  --bg: #efede8;
+  --fg: #0b0b0e;
+  --muted: #55555f;
+  --card: #f7f6f2;
+  --card-2: #e4e2dc;
+  --border: rgb(11 11 14 / 0.12);
+  --ring: rgb(109 40 217 / 0.55);
+  --sym-bg: var(--bg);
+  --sym-fg: var(--fg);
+  --sym-muted: #4f4f59;
+  --sym-line: rgb(11 11 14 / 0.14);
+  --ink-bg: #efede8;
+  --ink-body: #060608;
+  --ink-rim: #8d7bff;
+  --ink-hi: #ffffff;
+  --ink-sheen: 0.55;
+  --venom-color-2: #c9c1ff;
+}
+:root.dark:has(.pf-symbiote) {
+  --bg: #08080b;
+  --fg: #f2f1ee;
+  --muted: #a3a3ad;
+  --card: #111116;
+  --card-2: #1a1a21;
+  --border: rgb(255 255 255 / 0.1);
+  --ring: rgb(167 139 250 / 0.6);
+  --sym-muted: #a9a9b4;
+  --sym-line: rgb(255 255 255 / 0.12);
+  --ink-bg: #08080b;
+  --ink-body: #020203;
+  --ink-rim: #9b87ff;
+  --ink-hi: #e9e4ff;
+  --ink-sheen: 0.9;
+}
+
+/* stand-in for the ink before / without WebGL: same composition, static */
+.sym-ink-fallback {
+  background:
+    radial-gradient(circle at 74% 50%, #050507 0 22%, transparent 22.4%),
+    radial-gradient(circle at 60% 30%, #050507 0 4%, transparent 4.4%),
+    radial-gradient(circle at 88% 74%, #050507 0 3%, transparent 3.4%),
+    var(--ink-bg);
+}
+@media (max-width: 1023px) {
+  .sym-ink-fallback {
+    background:
+      radial-gradient(circle at 50% 52%, #050507 0 min(20vw, 18svh), transparent calc(min(20vw, 18svh) + 1px)),
+      radial-gradient(circle at 26% 30%, #050507 0 10px, transparent 11px),
+      var(--ink-bg);
+  }
+}
+
+/* the giant name inverts where the ink passes under it */
+.sym-name {
+  font-size: clamp(4.25rem, 16vw, 15rem);
+  line-height: 0.8;
+  letter-spacing: -0.065em;
+  font-weight: 700;
+  color: #fff;
+  mix-blend-mode: difference;
+}
+
+.sym-title {
+  background: linear-gradient(currentColor, currentColor) 0 100% / 0 0.06em no-repeat;
+  transition: background-size 500ms var(--sb-ease);
+}
+.sym-row:hover .sym-title,
+.sym-row:focus-within .sym-title {
+  background-size: 100% 0.06em;
+}
+.sym-row {
+  transition: opacity 300ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .sym-row--dim {
+    opacity: 0.38;
+  }
+  .sym-preview {
+    display: block;
+  }
+}
+@media (hover: none), (pointer: coarse) {
+  .sym-thumb {
+    display: block;
+  }
+}

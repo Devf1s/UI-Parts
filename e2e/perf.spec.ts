@@ -197,3 +197,48 @@ test("off-screen buttons stop animating", async ({ page }, info) => {
   expect(onScreen).toBeGreaterThan(20);
   expect(offScreen).toBe(0);
 });
+
+// ── portfolio samples: same budgets, every page
+for (const path of ["/portfolio/symbiote", "/portfolio/gallery", "/portfolio/orbit"]) {
+  test.describe(`portfolio ${path}`, () => {
+    test("Core Web Vitals: LCP < 2.5 s, CLS < 0.1", async ({ page }) => {
+      await open(page, path);
+      const { lcp, cls } = await vitals(page);
+      test.info().annotations.push({ type: "vitals", description: `LCP ${Math.round(lcp)} ms, CLS ${cls.toFixed(3)}` });
+      expect(lcp).toBeLessThan(2500);
+      expect(cls).toBeLessThan(0.1);
+    });
+
+    test("JS shipped on first load stays under 250 kB compressed", async ({ page }) => {
+      await open(page, path);
+      await page.waitForLoadState("networkidle");
+      const bytes = await page.evaluate(() =>
+        performance
+          .getEntriesByType("resource")
+          .filter((e) => (e as PerformanceResourceTiming).initiatorType === "script" || e.name.endsWith(".js"))
+          .reduce((n, e) => n + (e as PerformanceResourceTiming).encodedBodySize, 0),
+      );
+      test.info().annotations.push({ type: "js", description: `${Math.round(bytes / 1024)} kB` });
+      expect(bytes).toBeLessThan(250 * 1024);
+    });
+
+    test("idle page does not burn CPU", async ({ page }, info) => {
+      test.skip(info.project.name !== "desktop", "venom autoplay keeps phones busy by design");
+      await open(page, path);
+      await page.mouse.move(5, 5);
+      await page.waitForTimeout(1500);
+      const cdp = await page.context().newCDPSession(page);
+      await cdp.send("Performance.enable");
+      const read = async () => {
+        const { metrics } = await cdp.send("Performance.getMetrics");
+        return Object.fromEntries(metrics.map((m) => [m.name, m.value]));
+      };
+      const a = await read();
+      await page.waitForTimeout(4000);
+      const b = await read();
+      const busy = (b.ScriptDuration - a.ScriptDuration + b.TaskDuration - a.TaskDuration) / 4;
+      test.info().annotations.push({ type: "idle", description: `${(busy * 100).toFixed(1)}% main thread` });
+      expect(busy).toBeLessThan(0.1);
+    });
+  });
+}

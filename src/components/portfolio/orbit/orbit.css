@@ -1,0 +1,121 @@
+/* Sample 3 · Orbit. Deep space in dark, a printed star chart in light. */
+:root:has(.pf-orbit) {
+  --bg: #f4f5f7;
+  --fg: #10131c;
+  --muted: #505669;
+  --card: #ffffff;
+  --card-2: #e8eaf0;
+  --border: rgb(16 19 28 / 0.1);
+  --ring: rgb(61 90 254 / 0.55);
+  --orb-bg: var(--bg);
+  --orb-fg: var(--fg);
+  --orb-muted: #4d5366;
+  --orb-line-ui: rgb(16 19 28 / 0.14);
+  --orb-chip: rgb(255 255 255 / 0.7);
+  --orb-card: rgb(255 255 255 / 0.86);
+  --orb-core: #20263b;
+  --orb-arm: #5866a6;
+  --orb-line: #20263b;
+  --orb-glow: rgb(88 102 166 / 0.14);
+  --orb-accent: #3d5afe;
+  --venom-color: #10131c;
+  --venom-color-2: #a9b6ff;
+}
+:root.dark:has(.pf-orbit) {
+  --bg: #05060b;
+  --fg: #eef0f7;
+  --muted: #9ba1b6;
+  --card: #0d0f17;
+  --card-2: #161925;
+  --border: rgb(255 255 255 / 0.08);
+  --ring: rgb(140 160 255 / 0.6);
+  --orb-muted: #a0a6bb;
+  --orb-line-ui: rgb(255 255 255 / 0.16);
+  --orb-chip: rgb(20 23 36 / 0.6);
+  --orb-card: rgb(14 16 26 / 0.86);
+  --orb-core: #ffe2b8;
+  --orb-arm: #7d8cff;
+  --orb-line: #c9d0ff;
+  --orb-glow: rgb(125 140 255 / 0.16);
+  --orb-accent: #8c9eff;
+  --venom-color: #07080d;
+  --venom-color-2: #9fb0ff;
+  --venom-edge: rgb(140 160 255 / 0.35);
+}
+
+.orb-sky {
+  background:
+    radial-gradient(40% 45% at 50% 55%, var(--orb-glow), transparent 70%),
+    radial-gradient(70% 60% at 50% 55%, var(--orb-glow), transparent 80%),
+    var(--orb-bg);
+}
+
+.orb-tip,
+.orb-card {
+  background: var(--orb-card);
+  color: var(--orb-fg);
+  box-shadow:
+    0 0 0 1px var(--orb-line-ui),
+    0 18px 40px -18px rgb(0 0 0 / 0.5);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.orb-btn {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  padding: 0 0.9rem;
+  box-shadow: inset 0 0 0 1px var(--orb-line-ui);
+  outline: none;
+  transition: background-color 200ms;
+}
+.orb-btn:hover {
+  background: var(--orb-chip);
+}
+.orb-btn:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+/* bento tiles with a light that follows the cursor (set by JS as --mx / --my) */
+.orb-tile {
+  position: relative;
+  border-radius: 1.5rem;
+  background: var(--card);
+  box-shadow: inset 0 0 0 1px var(--border);
+  isolation: isolate;
+}
+.orb-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 1px;
+  background: radial-gradient(260px circle at var(--mx, -100px) var(--my, -100px), var(--orb-accent), transparent 70%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 300ms;
+}
+.orb-tile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(360px circle at var(--mx, -100px) var(--my, -100px), var(--orb-glow), transparent 70%);
+  opacity: 0;
+  transition: opacity 300ms;
+}
+@media (hover: hover) {
+  .orb-bento:hover .orb-tile::before,
+  .orb-bento:hover .orb-tile::after {
+    opacity: 1;
+  }
+}
