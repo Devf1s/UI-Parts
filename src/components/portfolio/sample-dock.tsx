@@ -8,7 +8,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/cn";
 import { SAMPLES } from "./samples";
 
-/** Floating dock to hop between portfolio samples, switch theme and get back to the UI parts. */
+/** Floating dock to hop between portfolio samples, switch theme and get back to the list of all pages. */
 export function SampleDock() {
   const path = usePathname();
   const router = useRouter();
@@ -26,15 +26,15 @@ export function SampleDock() {
       <Link
         href="/"
         {...intent("/")}
-        aria-label="Back to UI parts"
-        title="UI parts"
+        aria-label="All pages"
+        title="All pages"
         className="grid size-9 shrink-0 place-items-center rounded-full text-[var(--dock-muted)] outline-none transition-colors hover:text-[var(--dock-fg)] focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
       >
         <Home className="size-4" />
       </Link>
       <ul className="flex items-center">
         {SAMPLES.map((s) => {
-          const href = `/portfolio/${s.slug}`;
+          const href = s.href;
           const active = path === href;
           return (
             <li key={s.slug}>

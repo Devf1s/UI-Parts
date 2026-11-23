@@ -8,6 +8,10 @@ Small, production-minded UI components for a portfolio landing, built with
 | Component | What it does |
 | --- | --- |
 | `Sidebar` | Curved glass panel: a slab with an hourglass waist, lens refraction at the rim (Chromium) or frosted blur elsewhere, and an iridescent rim light. Rail that expands on hover (desktop), on tap (touch tablets), swipeable drawer on phones. Profile card, nested groups on a tree line, sliding glass pill, promo card, scroll-spy friendly. |
+| `HeatButton` | A thermal-camera pill: rubbing it warms a small heat field (diffusion, rising warm air, cooling) drawn with an ironbow palette, with a live spot-temperature readout and crosshair. |
+| `TrivisionButton` | A trivision billboard: the face is cut into vertical triangular prisms that turn one after another, in a wave from where the pointer came in, to a second face on hover and a third while pressed. Pure CSS 3D. |
+| `FilingsButton` | Iron filings on paper between the poles of a magnet. The pointer is a second magnet, the filings swing round to its field lines, a press flips its pole. |
+| `StringsButton` | Five strings across the button. Sweep the pointer over them and each one you cross is plucked and rings down; with sound on (`SoundToggle`) it plays a Karplus–Strong harp note panned to where you touched. |
 | `VenomButton` | Black "symbiote" button rendered as a lit 3D scene (WebGL2). Strings sprout on the edge as the cursor nears, 2–6 glossy tendrils lunge out and coil around the cursor (which becomes a 3D hand), stretch, bead and web together as you pull, then pinch off and recoil. Idle bursts keep it alive. Falls back to a 2D canvas without a GPU. |
 
 ```bash
@@ -17,17 +21,26 @@ npm run build   # production build + type check
 npm run test:all  # lint, types, unit, build, e2e (see Testing)
 ```
 
-## Portfolio samples
+## Pages
 
-`/portfolio` shows three portfolio sites built from the author's public GitHub repositories
-(Devf1s), each with its own WebGL scene, the venom button and a share panel. A floating dock
-switches between them and the theme.
+| Route | Page |
+| --- | --- |
+| [`/`](https://ui-parts.vercel.app/) | Index of every page, one new button each: thermal, trivision, magnet and strings. |
+| [`/portfolio`](https://ui-parts.vercel.app/portfolio) | The portfolio (Symbiote design). |
+| [`/portfolio/gallery`](https://ui-parts.vercel.app/portfolio/gallery), [`/portfolio/orbit`](https://ui-parts.vercel.app/portfolio/orbit) | Two alternative portfolio designs on the same data. |
+| [`/test`](https://ui-parts.vercel.app/test) | The UI parts lab: glass sidebar and venom button. |
 
-| Sample | Idea | WebGL |
+## Portfolio
+
+The portfolio is built from the author's public GitHub repositories (Devf1s). It comes in three
+designs, each with its own WebGL scene, the venom button and a share panel; a floating dock
+switches between them and the theme, and its home button goes back to the index.
+
+| Design | Idea | WebGL |
 | --- | --- | --- |
-| [`/portfolio/symbiote`](https://ui-parts.vercel.app/portfolio/symbiote) | Dark, inky landing; an index of projects with a floating preview, an archive table. | Full-screen metaball ink that reaches for the cursor; the hover preview cross-fades covers and splits RGB with cursor speed. |
-| [`/portfolio/gallery`](https://ui-parts.vercel.app/portfolio/gallery) | Editorial grid with category filters. | A poster hanging as cloth (drawn with the page's fonts), cover planes synced to the DOM cards that bend with scroll velocity and ripple on hover. |
-| [`/portfolio/orbit`](https://ui-parts.vercel.app/portfolio/orbit) | Every repository as a star, with a bento of stats and search. | A point-sprite galaxy: newest repos near the core, oldest at the rim, coloured by language; drag to spin, pick a star to open its card. |
+| [`/portfolio`](https://ui-parts.vercel.app/portfolio) · Symbiote | Dark, inky landing; an index of projects with a floating preview, an archive table. | Full-screen metaball ink that reaches for the cursor; the hover preview cross-fades covers and splits RGB with cursor speed. |
+| [`/portfolio/gallery`](https://ui-parts.vercel.app/portfolio/gallery) · Gallery | Editorial grid with category filters. | A poster hanging as cloth (drawn with the page's fonts), cover planes synced to the DOM cards that bend with scroll velocity and ripple on hover. |
+| [`/portfolio/orbit`](https://ui-parts.vercel.app/portfolio/orbit) · Orbit | Every repository as a star, with a bento of stats and search. | A point-sprite galaxy: newest repos near the core, oldest at the rim, coloured by language; drag to spin, pick a star to open its card. |
 
 **Data.** `npm run sync:github` fetches the public, non-fork, non-archived repositories into
 `src/data/github-repos.json`; `src/data/portfolio.ts` adds titles, categories and the featured
@@ -47,6 +60,8 @@ otherwise, with a polite status message.
 
 Testing hooks: set `window.__PF_GL__ = "force"` (WebGL even on a software rasteriser) or `"off"`
 (fallbacks) before load; each scene canvas exposes `__pf` with `step(dt)` to render deterministic frames.
+The index buttons' canvases expose `__fx` (`running()`, `energy()`), and `window.__uiSound.plays()`
+counts notes played.
 
 ## Usage
 
@@ -75,6 +90,38 @@ import { VenomButton } from "@/components/ui/venom-button";
 
 <VenomButton tendrils={6} reach={140}>let’s collaborate</VenomButton>
 ```
+
+### Index buttons
+
+The four index buttons share one shape: give them `href` and they render a link (internal links
+prefetch on hover or focus, not on load), leave it out and they are a `<button>` with `onClick`.
+`meta` is the small text on the right. All of them are plain links or buttons to assistive tech,
+draw on a canvas or in CSS 3D that is `aria-hidden`, run their loop only while something moves and
+stop when idle, off screen or in a hidden tab, and show a still picture under
+`prefers-reduced-motion`.
+
+```tsx
+import { HeatButton } from "@/components/ui/heat-button";
+import { TrivisionButton } from "@/components/ui/trivision-button";
+import { FilingsButton } from "@/components/ui/filings-button";
+import { SoundToggle, StringsButton } from "@/components/ui/strings-button";
+
+<HeatButton href="/portfolio" meta="/portfolio">Portfolio</HeatButton>
+<TrivisionButton href="/portfolio/gallery" hover="Cloth & paper">Gallery</TrivisionButton>
+<FilingsButton href="/portfolio/orbit">Orbit</FilingsButton>
+<SoundToggle />
+<StringsButton onClick={save} notes={[392, 329.63, 261.63]}>Save</StringsButton>
+```
+
+| Component | Props | CSS variables |
+| --- | --- | --- |
+| `HeatButton` | `cell` (simulation cell, px, default 8), `warmth` (how fast rubbing heats, 1), `readout` (temperature and crosshair, true) | `--heat-cold`, `--heat-fg`, `--heat-meta`, `--heat-radius` |
+| `TrivisionButton` | `hover`, `press` (second and third faces), `label` (accessible name when faces are not text), `prisms` (14) | `--tv-a-bg/fg`, `--tv-b-bg/fg`, `--tv-c-bg/fg`, `--tv-h`, `--tv-radius`, `--tv-duration`, `--tv-stagger`, `--tv-ease` |
+| `FilingsButton` | `spacing` (between filings, px, 8), `pull` (pointer pole vs magnet, 1.6) | `--fl-paper`, `--fl-ink`, `--fl-s`, `--fl-n`, `--fl-cap`, `--fl-fg`, `--fl-meta`, `--fl-radius` |
+| `StringsButton` | `notes` (Hz, one string per note, top to bottom) | `--st-bg`, `--st-string`, `--st-peg`, `--st-live`, `--st-chip`, `--st-fg`, `--st-radius` |
+
+Sound is off until the visitor turns it on with `SoundToggle` (the audio context is created on that
+click); `sound.pluck(freq, gain, pan)` and `sound.strum(notes)` are exported for other components.
 
 ### Sidebar props
 
@@ -172,7 +219,7 @@ CSS variables: `--venom-color` (body and goo), `--venom-color-2` (rim lights and
 
 | Command | What runs |
 | --- | --- |
-| `npm test` | Vitest unit tests for the venom physics: outline geometry (pill and rounded rectangle), sense/reach thresholds, tendril cap, grab, snap and sleep, stability under erratic input, determinism. Plus the portfolio data (only public repos, unique slugs, stats), galaxy maths (placement, projection, picking), the share fallback chain and colour parsing. |
+| `npm test` | Vitest unit tests for the venom physics: outline geometry (pill and rounded rectangle), sense/reach thresholds, tendril cap, grab, snap and sleep, stability under erratic input, determinism. Plus the portfolio data (only public repos, unique slugs, stats), galaxy maths (placement, projection, picking), the share fallback chain and colour parsing, and the index button physics: heat diffusion, rise and cooling, magnetic field and needle alignment, string modes and damping. |
 | `npm run test:e2e` | Playwright against the production build (`npm run build` first) on four devices: desktop 1440×900, iPad Mini, Pixel 7, iPhone SE. |
 | `npm run test:all` | Lint, types, unit, build and e2e, the same as CI. |
 
@@ -185,7 +232,8 @@ The e2e suite covers:
   fallback to 2D without a GPU, and the WebGL renderer itself (forced on over SwiftShader and stepped
   deterministically): slab and transparent floor drawn, tendrils latch and snap, the 3D cursor appears and goes.
 - **Portfolio samples:** each renders its WebGL scene without errors, falls back without WebGL, passes axe in both themes, keeps one h1 and no sideways scroll, never lets a canvas block clicks, pauses off screen and under reduced motion; plus per-sample usability (index preview, filters, star picking, search, share sheet and clipboard fallback, dock).
-- **Performance budgets:** LCP < 2.5 s, CLS < 0.1, first-load JS < 250 kB compressed, idle main thread < 10 % (home and every portfolio sample), p95 frame < 50 ms with 4× CPU throttle, off-screen canvases stop drawing.
+- **Index:** every page listed in order and centred, every button opens its page (tap on touch), keyboard order and focus ring, axe in both themes; the thermal button warms when rubbed then cools and stops, the prisms turn in a wave and show the right face, filings settle, follow the pointer and flip with a press, strings ring down to silence, sound stays off until switched on, reduced motion, and a page left alone goes fully idle.
+- **Performance budgets:** LCP < 2.5 s, CLS < 0.1, first-load JS < 250 kB compressed, idle main thread < 10 % (index, lab and every portfolio page), p95 frame < 50 ms with 4× CPU throttle, off-screen canvases stop drawing.
 
 CI (`.github/workflows/ci.yml`) runs all of it on every pull request. If you already have Chromium installed, point the tests at it with `PW_CHROMIUM_PATH=/path/to/chrome`.
 

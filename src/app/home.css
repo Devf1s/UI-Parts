@@ -1,0 +1,19 @@
+/* The index: a quiet dot grid, the list in the middle. */
+.home {
+  background:
+    radial-gradient(circle at 1px 1px, rgb(13 13 18 / 0.09) 1px, transparent 0) 0 0 / 22px 22px,
+    var(--bg);
+}
+.dark .home {
+  background:
+    radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.07) 1px, transparent 0) 0 0 / 22px 22px,
+    var(--bg);
+}
+.home-hint {
+  margin-top: 0.5rem;
+  padding-inline: 0.25rem;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}

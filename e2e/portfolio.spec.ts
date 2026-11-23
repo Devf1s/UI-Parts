@@ -9,10 +9,11 @@ import { horizontalOverflow } from "./helpers";
  * unless a test forces the full loop with `window.__PF_GL__ = "force"`.
  */
 
+// Symbiote is the portfolio itself; the other two are alternatives under it
 const SAMPLES = [
-  { slug: "symbiote", title: "Symbiote", canvas: "ink-canvas" },
-  { slug: "gallery", title: "Gallery", canvas: "poster-canvas" },
-  { slug: "orbit", title: "Orbit", canvas: "galaxy-canvas" },
+  { slug: "symbiote", path: "/portfolio", title: "Symbiote", canvas: "ink-canvas" },
+  { slug: "gallery", path: "/portfolio/gallery", title: "Gallery", canvas: "poster-canvas" },
+  { slug: "orbit", path: "/portfolio/orbit", title: "Orbit", canvas: "galaxy-canvas" },
 ] as const;
 
 type Debug = { quality: string; frames: number; running(): boolean };
@@ -43,18 +44,9 @@ const scan = (page: Page) =>
 const summary = (v: Awaited<ReturnType<typeof scan>>["violations"]) =>
   v.map((x) => `${x.id} (${x.impact}): ${x.nodes.map((n) => n.target.join(" ")).join(", ")}`).join("\n");
 
-test("index lists the three samples", async ({ page }) => {
-  const { expectNoErrors } = await load(page, "/portfolio");
-  for (const s of SAMPLES) await expect(page.getByRole("main").getByRole("link", { name: new RegExp(s.title) })).toHaveAttribute("href", `/portfolio/${s.slug}`);
-  expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
-  const { violations } = await scan(page);
-  expect(violations, summary(violations)).toEqual([]);
-  expectNoErrors();
-});
-
 for (const s of SAMPLES) {
   test.describe(`${s.title} sample`, () => {
-    const path = `/portfolio/${s.slug}`;
+    const path = s.path;
 
     test("renders its WebGL scene without errors", async ({ page }) => {
       const { expectNoErrors } = await load(page, path);
@@ -137,7 +129,7 @@ for (const s of SAMPLES) {
       await expect(dock.getByRole("link", { name: s.title })).toHaveAttribute("aria-current", "page");
       const next = SAMPLES[(SAMPLES.findIndex((x) => x.slug === s.slug) + 1) % SAMPLES.length];
       await dock.getByRole("link", { name: next.title }).click();
-      await expect(page).toHaveURL(new RegExp(`/portfolio/${next.slug}$`));
+      await expect(page).toHaveURL(new RegExp(`${next.path}$`));
       await expect(dock.getByRole("link", { name: next.title })).toHaveAttribute("aria-current", "page");
     });
   });
@@ -146,7 +138,7 @@ for (const s of SAMPLES) {
 test.describe("Symbiote", () => {
   test("hovering the index shows a WebGL preview that follows the cursor", async ({ page }, info) => {
     test.skip(info.project.name !== "desktop", "mouse only");
-    await load(page, "/portfolio/symbiote");
+    await load(page, "/portfolio");
     const preview = page.locator(".sym-preview");
     const rows = page.locator("#work li.sym-row");
     await rows.first().scrollIntoViewIfNeeded();
@@ -165,21 +157,21 @@ test.describe("Symbiote", () => {
 
   test("touch screens get thumbnails instead of the floating preview", async ({ page }, info) => {
     test.skip(info.project.name === "desktop", "touch only");
-    await load(page, "/portfolio/symbiote");
+    await load(page, "/portfolio");
     await page.locator("#work").scrollIntoViewIfNeeded();
     await expect(page.locator(".sym-thumb").first()).toBeVisible();
     await expect(page.locator(".sym-preview")).toBeHidden();
   });
 
   test("the venom button takes you to the work", async ({ page }) => {
-    await load(page, "/portfolio/symbiote");
+    await load(page, "/portfolio");
     await page.getByRole("button", { name: "see the work" }).click();
     await expect(page.locator("#work")).toBeInViewport();
     await expect(page.locator("#work")).toBeFocused();
   });
 
   test("lists every public repository once", async ({ page }) => {
-    await load(page, "/portfolio/symbiote");
+    await load(page, "/portfolio");
     const featured = await page.locator("#work li.sym-row").count();
     const archive = await page.locator("#archive tbody tr").count();
     expect(featured + archive).toBe(PROJECTS.length);

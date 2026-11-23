@@ -198,9 +198,9 @@ test("off-screen buttons stop animating", async ({ page }, info) => {
   expect(offScreen).toBe(0);
 });
 
-// ── portfolio samples: same budgets, every page
-for (const path of ["/portfolio/symbiote", "/portfolio/gallery", "/portfolio/orbit"]) {
-  test.describe(`portfolio ${path}`, () => {
+// ── the index, the portfolio and the other samples: same budgets, every page
+for (const path of ["/", "/portfolio", "/portfolio/gallery", "/portfolio/orbit"]) {
+  test.describe(`page ${path}`, () => {
     test("Core Web Vitals: LCP < 2.5 s, CLS < 0.1", async ({ page }) => {
       await open(page, path);
       const { lcp, cls } = await vitals(page);
