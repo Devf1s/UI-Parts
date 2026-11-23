@@ -1,19 +1,157 @@
-/* The index: a quiet dot grid, the list in the middle. */
+/*
+ * The index, in a cartoon / anime key: warm paper with a manga screentone, a sunburst behind the
+ * title, bouncy lettering, sticker-like chips.
+ */
 .home {
+  --home-paper: #fff6e6;
+  --home-dot: rgb(27 21 48 / 0.075);
+  --home-ray: rgb(255 180 90 / 0.16);
+  --home-ink: #1b1530;
+  --home-muted: #5f5675;
+  --home-title-shadow: #ff8fc7;
   background:
-    radial-gradient(circle at 1px 1px, rgb(13 13 18 / 0.09) 1px, transparent 0) 0 0 / 22px 22px,
-    var(--bg);
+    radial-gradient(circle, var(--home-dot) 1.2px, transparent 1.6px) 0 0 / 16px 16px,
+    var(--home-paper);
+  color: var(--home-ink);
+  font-family: var(--font-toon), var(--font-sans);
+  /* the sunburst and the focus lines may reach past the edges; they must not scroll the page */
+  overflow-x: clip;
 }
 .dark .home {
-  background:
-    radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.07) 1px, transparent 0) 0 0 / 22px 22px,
-    var(--bg);
+  --home-paper: #1b1633;
+  --home-dot: rgb(255 255 255 / 0.06);
+  --home-ray: rgb(167 123 255 / 0.12);
+  --home-ink: #fff4e0;
+  --home-muted: #c4bbdf;
+  --home-title-shadow: #7c5cff;
+}
+/* sunburst rays behind the title (static: nothing here moves on its own) */
+.home::before {
+  content: "";
+  position: absolute;
+  top: -22rem;
+  left: 50%;
+  width: 64rem;
+  height: 64rem;
+  translate: -50% 0;
+  background: repeating-conic-gradient(var(--home-ray) 0deg 7deg, transparent 7deg 15deg);
+  -webkit-mask: radial-gradient(closest-side, #000 18%, transparent 72%);
+  mask: radial-gradient(closest-side, #000 18%, transparent 72%);
+  pointer-events: none;
+}
+.home > * {
+  position: relative;
+}
+
+.home-logo {
+  display: inline-block;
+  padding: 0.3rem 0.8rem 0.35rem;
+  border: 2.5px solid #1b1530;
+  border-radius: 12px;
+  background: #ffd447;
+  box-shadow: 0 3px 0 #1b1530;
+  color: #1b1530;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  rotate: -4deg;
+}
+.home-theme {
+  border: 2.5px solid #1b1530;
+  background: #fffdf7 !important;
+  box-shadow: 0 3px 0 #1b1530;
+  color: #1b1530;
+}
+.home-theme button {
+  color: #5f5675;
+}
+.home-theme button[aria-checked="true"] {
+  color: #1b1530;
+}
+.home-theme span {
+  background: #ffd447 !important;
+}
+
+.home-title {
+  text-align: center;
+  font-size: clamp(2.75rem, 11vw, 4rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+.home-title__ch {
+  display: inline-block;
+  text-shadow: 0.06em 0.07em 0 var(--home-title-shadow);
+  transform-origin: 50% 100%;
+  animation: home-letter 0.8s backwards;
+  animation-delay: calc(var(--i) * 45ms);
+}
+.home-title__ch:hover {
+  animation: home-hop 0.55s;
+}
+.home-lede {
+  margin: 0.9rem auto 0;
+  max-width: 22rem;
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--home-muted);
 }
 .home-hint {
-  margin-top: 0.5rem;
-  padding-inline: 0.25rem;
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 11px;
-  letter-spacing: 0.02em;
-  color: var(--muted);
+  margin-top: 0.7rem;
+  padding-inline: 0.4rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--home-muted);
+}
+
+@keyframes home-letter {
+  0% {
+    translate: 0 -0.9em;
+    scale: 0.9 1.15;
+    animation-timing-function: cubic-bezier(0.55, 0, 0.9, 0.5);
+  }
+  45% {
+    translate: 0 0;
+    scale: 1.2 0.8;
+    animation-timing-function: ease-out;
+  }
+  65% {
+    translate: 0 -0.12em;
+    scale: 0.94 1.08;
+  }
+  85% {
+    translate: 0 0;
+    scale: 1.03 0.97;
+  }
+  100% {
+    scale: 1;
+  }
+}
+@keyframes home-hop {
+  0% {
+    translate: 0 0;
+    scale: 1;
+  }
+  20% {
+    scale: 1.15 0.85;
+  }
+  50% {
+    translate: 0 -0.3em;
+    scale: 0.9 1.12;
+  }
+  80% {
+    translate: 0 0;
+    scale: 1.08 0.92;
+  }
+  100% {
+    scale: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-title__ch,
+  .home-title__ch:hover {
+    animation: none;
+  }
 }

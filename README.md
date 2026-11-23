@@ -8,10 +8,7 @@ Small, production-minded UI components for a portfolio landing, built with
 | Component | What it does |
 | --- | --- |
 | `Sidebar` | Curved glass panel: a slab with an hourglass waist, lens refraction at the rim (Chromium) or frosted blur elsewhere, and an iridescent rim light. Rail that expands on hover (desktop), on tap (touch tablets), swipeable drawer on phones. Profile card, nested groups on a tree line, sliding glass pill, promo card, scroll-spy friendly. |
-| `HeatButton` | A thermal-camera pill: rubbing it warms a small heat field (diffusion, rising warm air, cooling) drawn with an ironbow palette, with a live spot-temperature readout and crosshair. |
-| `TrivisionButton` | A trivision billboard: the face is cut into vertical triangular prisms that turn one after another, in a wave from where the pointer came in, to a second face on hover and a third while pressed. Pure CSS 3D. |
-| `FilingsButton` | Iron filings on paper between the poles of a magnet. The pointer is a second magnet, the filings swing round to its field lines, a press flips its pole. |
-| `StringsButton` | Five strings across the button. Sweep the pointer over them and each one you cross is plucked and rings down; with sound on (`SoundToggle`) it plays a Karplus–Strong harp note panned to where you touched. |
+| `NekoButton`, `PopupButton`, `RocketButton`, `BoxerButton` | Cartoon / anime buttons with a character living on each: a cat peeking over the edge whose eyes follow the cursor, polaroids that spring out with falling sakura petals, a rocket that rumbles (ゴゴゴ) and lifts off, a jack-in-the-box glove that punches (POW!). Thick ink outlines, cel shine, screentone, squash and stretch, manga focus lines, optional synthesised sound effects. |
 | `VenomButton` | Black "symbiote" button rendered as a lit 3D scene (WebGL2). Strings sprout on the edge as the cursor nears, 2–6 glossy tendrils lunge out and coil around the cursor (which becomes a 3D hand), stretch, bead and web together as you pull, then pinch off and recoil. Idle bursts keep it alive. Falls back to a 2D canvas without a GPU. |
 
 ```bash
@@ -25,7 +22,7 @@ npm run test:all  # lint, types, unit, build, e2e (see Testing)
 
 | Route | Page |
 | --- | --- |
-| [`/`](https://ui-parts.vercel.app/) | Index of every page, one new button each: thermal, trivision, magnet and strings. |
+| [`/`](https://ui-parts.vercel.app/) | Index of every page in a cartoon / anime style, each behind a button with a character on it. |
 | [`/portfolio`](https://ui-parts.vercel.app/portfolio) | The portfolio (Symbiote design). |
 | [`/portfolio/gallery`](https://ui-parts.vercel.app/portfolio/gallery), [`/portfolio/orbit`](https://ui-parts.vercel.app/portfolio/orbit) | Two alternative portfolio designs on the same data. |
 | [`/test`](https://ui-parts.vercel.app/test) | The UI parts lab: glass sidebar and venom button. |
@@ -60,8 +57,8 @@ otherwise, with a polite status message.
 
 Testing hooks: set `window.__PF_GL__ = "force"` (WebGL even on a software rasteriser) or `"off"`
 (fallbacks) before load; each scene canvas exposes `__pf` with `step(dt)` to render deterministic frames.
-The index buttons' canvases expose `__fx` (`running()`, `energy()`), and `window.__uiSound.plays()`
-counts notes played.
+The cat's SVG exposes `__toon` (`running()`, `look()`), and `window.__uiSound.plays()` counts the
+sound effects played.
 
 ## Usage
 
@@ -91,37 +88,38 @@ import { VenomButton } from "@/components/ui/venom-button";
 <VenomButton tendrils={6} reach={140}>let’s collaborate</VenomButton>
 ```
 
-### Index buttons
+### Toon buttons (the index)
 
-The four index buttons share one shape: give them `href` and they render a link (internal links
-prefetch on hover or focus, not on load), leave it out and they are a `<button>` with `onClick`.
-`meta` is the small text on the right. All of them are plain links or buttons to assistive tech,
-draw on a canvas or in CSS 3D that is `aria-hidden`, run their loop only while something moves and
-stop when idle, off screen or in a hidden tab, and show a still picture under
-`prefers-reduced-motion`.
+All four share `ToonButton`: give them `href` and they render a link (internal links prefetch on
+hover or focus, not on load), leave it out and they are a `<button>` with `onClick`. `meta` is the
+small line under the label, `tone` the fill colour, `index` staggers the drop-in entrance in a list.
+
+- **Animation principles:** the buttons drop in with squash and stretch, wobble like jelly when
+  pointed at, squash into their hard shadow when pressed. Two-state moves use damped springs sampled
+  into CSS `linear()` (with a `cubic-bezier` fallback), multi-step moves are keyframes.
+- **Characters** are decorative SVG (`aria-hidden`) behind and in front of the button, driven by
+  `data-hover`, `data-press` and `data-go`. Keyboard focus wakes them like a hover.
+- **Exit gag:** a plain click on an internal link plays a short gag (manga focus lines plus the
+  character's move, 420–480 ms), then navigates; modified clicks, external links and reduced motion
+  navigate at once.
+- **Cost:** everything is CSS on compositor-friendly properties except the cat's eyes, which run a
+  small spring loop only while the pointer moves and sleep off screen. An untouched page is idle.
+- **Sound** is off until the visitor turns it on with `SoundToggle`; the effects (pop, mew, fwip,
+  rumble, whoosh, boing, pow) are synthesised with Web Audio, no files. `sound.play(name)` is exported.
 
 ```tsx
-import { HeatButton } from "@/components/ui/heat-button";
-import { TrivisionButton } from "@/components/ui/trivision-button";
-import { FilingsButton } from "@/components/ui/filings-button";
-import { SoundToggle, StringsButton } from "@/components/ui/strings-button";
+import { BoxerButton, NekoButton, PopupButton, RocketButton, SoundToggle } from "@/components/ui/toon-button";
 
-<HeatButton href="/portfolio" meta="/portfolio">Portfolio</HeatButton>
-<TrivisionButton href="/portfolio/gallery" hover="Cloth & paper">Gallery</TrivisionButton>
-<FilingsButton href="/portfolio/orbit">Orbit</FilingsButton>
+<NekoButton href="/portfolio" meta="/portfolio" index={0}>Portfolio</NekoButton>
+<PopupButton href="/portfolio/gallery" tone="#ffb3d9" index={1}>Gallery</PopupButton>
+<RocketButton href="/portfolio/orbit" index={2}>Orbit</RocketButton>
+<BoxerButton onClick={save}>Save</BoxerButton>
 <SoundToggle />
-<StringsButton onClick={save} notes={[392, 329.63, 261.63]}>Save</StringsButton>
 ```
 
-| Component | Props | CSS variables |
-| --- | --- | --- |
-| `HeatButton` | `cell` (simulation cell, px, default 8), `warmth` (how fast rubbing heats, 1), `readout` (temperature and crosshair, true) | `--heat-cold`, `--heat-fg`, `--heat-meta`, `--heat-radius` |
-| `TrivisionButton` | `hover`, `press` (second and third faces), `label` (accessible name when faces are not text), `prisms` (14) | `--tv-a-bg/fg`, `--tv-b-bg/fg`, `--tv-c-bg/fg`, `--tv-h`, `--tv-radius`, `--tv-duration`, `--tv-stagger`, `--tv-ease` |
-| `FilingsButton` | `spacing` (between filings, px, 8), `pull` (pointer pole vs magnet, 1.6) | `--fl-paper`, `--fl-ink`, `--fl-s`, `--fl-n`, `--fl-cap`, `--fl-fg`, `--fl-meta`, `--fl-radius` |
-| `StringsButton` | `notes` (Hz, one string per note, top to bottom) | `--st-bg`, `--st-string`, `--st-peg`, `--st-live`, `--st-chip`, `--st-fg`, `--st-radius` |
-
-Sound is off until the visitor turns it on with `SoundToggle` (the audio context is created on that
-click); `sound.pluck(freq, gain, pan)` and `sound.strum(notes)` are exported for other components.
+CSS variables on `.toon`: `--toon-fill`, `--toon-ink`, `--toon-shadow`, `--toon-ring`,
+`--toon-line` (outline width), `--toon-lift` (shadow depth), `--toon-radius`, `--toon-height`,
+`--toon-art-w` (room for the character), `--toon-bouncy` / `--toon-soft` (spring curves).
 
 ### Sidebar props
 
@@ -219,7 +217,7 @@ CSS variables: `--venom-color` (body and goo), `--venom-color-2` (rim lights and
 
 | Command | What runs |
 | --- | --- |
-| `npm test` | Vitest unit tests for the venom physics: outline geometry (pill and rounded rectangle), sense/reach thresholds, tendril cap, grab, snap and sleep, stability under erratic input, determinism. Plus the portfolio data (only public repos, unique slugs, stats), galaxy maths (placement, projection, picking), the share fallback chain and colour parsing, and the index button physics: heat diffusion, rise and cooling, magnetic field and needle alignment, string modes and damping. |
+| `npm test` | Vitest unit tests for the venom physics: outline geometry (pill and rounded rectangle), sense/reach thresholds, tendril cap, grab, snap and sleep, stability under erratic input, determinism. Plus the portfolio data (only public repos, unique slugs, stats), galaxy maths (placement, projection, picking), the share fallback chain and colour parsing, and the toon maths: where an eye looks, the pupil spring, seeded focus lines and impact bursts. |
 | `npm run test:e2e` | Playwright against the production build (`npm run build` first) on four devices: desktop 1440×900, iPad Mini, Pixel 7, iPhone SE. |
 | `npm run test:all` | Lint, types, unit, build and e2e, the same as CI. |
 
@@ -232,7 +230,7 @@ The e2e suite covers:
   fallback to 2D without a GPU, and the WebGL renderer itself (forced on over SwiftShader and stepped
   deterministically): slab and transparent floor drawn, tendrils latch and snap, the 3D cursor appears and goes.
 - **Portfolio samples:** each renders its WebGL scene without errors, falls back without WebGL, passes axe in both themes, keeps one h1 and no sideways scroll, never lets a canvas block clicks, pauses off screen and under reduced motion; plus per-sample usability (index preview, filters, star picking, search, share sheet and clipboard fallback, dock).
-- **Index:** every page listed in order and centred, every button opens its page (tap on touch), keyboard order and focus ring, axe in both themes; the thermal button warms when rubbed then cools and stops, the prisms turn in a wave and show the right face, filings settle, follow the pointer and flip with a press, strings ring down to silence, sound stays off until switched on, reduced motion, and a page left alone goes fully idle.
+- **Index:** every page listed in order and centred, no sideways scroll, every button plays its exit gag and opens its page (tap on touch), keyboard order, visible focus that wakes the character, axe in both themes; the cat's eyes follow the pointer and settle, it pops up on hover and squints on a press; the pictures spring out and tuck back; the rocket rumbles and lifts off; the glove boings out and punches; sound stays off until switched on; reduced motion (no entrance, links open at once); and a page left alone goes fully idle.
 - **Performance budgets:** LCP < 2.5 s, CLS < 0.1, first-load JS < 250 kB compressed, idle main thread < 10 % (index, lab and every portfolio page), p95 frame < 50 ms with 4× CPU throttle, off-screen canvases stop drawing.
 
 CI (`.github/workflows/ci.yml`) runs all of it on every pull request. If you already have Chromium installed, point the tests at it with `PW_CHROMIUM_PATH=/path/to/chrome`.

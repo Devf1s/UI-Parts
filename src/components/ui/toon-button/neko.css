@@ -1,0 +1,194 @@
+/* NekoButton: the cat lives behind the button, its paws on the top edge in front of it. */
+.toon[data-toon="neko"] {
+  --toon-fill: #ffd447;
+  --neko-fur: #fffaf0;
+  --neko-patch: #ffad4d;
+  --neko-pink: #ffb3c8;
+  --neko-blush: #ff8fb0;
+}
+.neko-spot {
+  position: absolute;
+  top: 0;
+  right: 22px;
+  width: 96px;
+}
+.neko-cat {
+  position: absolute;
+  top: -56px;
+  left: 0;
+  width: 96px;
+  height: 80px;
+  overflow: visible;
+  transform-origin: 50% 100%;
+  transition:
+    translate 0.6s var(--toon-bouncy),
+    rotate 0.6s var(--toon-bouncy);
+}
+.neko-head {
+  fill: var(--neko-fur);
+}
+.neko-patch {
+  fill: var(--neko-patch);
+}
+.neko-ear {
+  fill: var(--neko-pink);
+}
+.neko-line {
+  fill: none;
+  stroke: var(--toon-ink);
+  stroke-width: 3.2;
+  stroke-linejoin: round;
+}
+.neko-blush {
+  opacity: 0.4;
+  transition: opacity 0.3s;
+}
+.neko-blush ellipse {
+  fill: var(--neko-blush);
+}
+.neko-blush path {
+  fill: none;
+  stroke: #ff5c8a;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+.neko-whisker {
+  fill: none;
+  stroke: var(--toon-ink);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+.neko-eye {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: scale 0.06s;
+}
+.neko-cat[data-blink] .neko-eye {
+  scale: 1 0.1;
+}
+.neko-white {
+  fill: #fff;
+}
+.neko-rim {
+  fill: none;
+  stroke: var(--toon-ink);
+  stroke-width: 2.4;
+}
+.neko-lash {
+  fill: none;
+  stroke: var(--toon-ink);
+  stroke-width: 3.6;
+  stroke-linecap: round;
+}
+.neko-squint {
+  fill: none;
+  stroke: var(--toon-ink);
+  stroke-width: 3.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+}
+.neko-stars {
+  fill: #ffd447;
+  stroke: var(--toon-ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  opacity: 0;
+}
+.neko-nose {
+  fill: #ff7aa2;
+  stroke: var(--toon-ink);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+.neko-mouth {
+  fill: none;
+  stroke: var(--toon-ink);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.neko-open {
+  opacity: 0;
+}
+.neko-open path {
+  fill: #8a1f45;
+  stroke: var(--toon-ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.neko-open ellipse {
+  fill: #ff8fb0;
+}
+.neko-paws {
+  position: absolute;
+  top: -12px;
+  left: 0;
+  width: 96px;
+  height: 16px;
+  overflow: visible;
+  transition: translate 0.4s var(--toon-bouncy);
+}
+.neko-paws path {
+  fill: var(--neko-fur);
+  stroke: var(--toon-ink);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.neko-paws .neko-toes {
+  fill: none;
+  stroke-width: 1.8;
+}
+.neko-nya {
+  top: -84px;
+  right: -22px;
+  font-size: 26px;
+  --sfx-fill: #ff8fc7;
+  rotate: 12deg;
+  scale: 0;
+  transition: scale 0.35s var(--toon-bouncy);
+}
+
+/* pointed at: pops up, tilts its head, blushes */
+.toon[data-toon="neko"][data-hover] .neko-cat {
+  translate: 0 -11px;
+  rotate: -4deg;
+}
+.toon[data-toon="neko"][data-hover] .neko-blush {
+  opacity: 1;
+}
+/* pressed: ducks, eyes squeezed shut */
+.toon[data-toon="neko"][data-press] .neko-cat {
+  translate: 0 6px;
+  rotate: 0deg;
+  transition-duration: 0.12s;
+  transition-timing-function: ease-out;
+}
+.toon[data-toon="neko"][data-press] .neko-eyes {
+  opacity: 0;
+}
+.toon[data-toon="neko"][data-press] .neko-squint {
+  opacity: 1;
+}
+/* going: jumps, star eyes, ニャ! */
+.toon[data-toon="neko"][data-go] .neko-cat {
+  translate: 0 -24px;
+  rotate: 7deg;
+  transition-duration: 0.4s;
+}
+.toon[data-toon="neko"][data-go] .neko-paws {
+  translate: 0 -6px;
+}
+.toon[data-toon="neko"][data-go] :is(.neko-eyes, .neko-squint, .neko-mouth) {
+  opacity: 0;
+}
+.toon[data-toon="neko"][data-go] :is(.neko-stars, .neko-open) {
+  opacity: 1;
+}
+.toon[data-toon="neko"][data-go] .neko-blush {
+  opacity: 1;
+}
+.toon[data-toon="neko"][data-go] .neko-nya {
+  scale: 1;
+}

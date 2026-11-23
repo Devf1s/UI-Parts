@@ -1,0 +1,239 @@
+/* RocketButton: stars and speed lines inside the button, the rocket and its smoke in front. */
+.toon[data-toon="rocket"] {
+  --toon-fill: #59c8ff;
+}
+.rk-star {
+  position: absolute;
+  width: calc(var(--s) * 14px);
+  height: calc(var(--s) * 14px);
+  translate: -50% -50%;
+  fill: #fff;
+  stroke: var(--toon-ink);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+.rk-speed {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  overflow: visible;
+}
+.rk-speed path {
+  stroke: #fff;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.rk-spot {
+  position: absolute;
+  right: 28px;
+  bottom: 6px;
+  width: 44px;
+  height: 92px;
+}
+.rk-rocket {
+  position: absolute;
+  inset: 0;
+  width: 44px;
+  height: 92px;
+  overflow: visible;
+  transform-origin: 50% 80%;
+}
+.rk-body {
+  fill: #fffaf0;
+  stroke: var(--toon-ink);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+.rk-nose,
+.rk-fin {
+  fill: #ff5470;
+  stroke: var(--toon-ink);
+  stroke-width: 2.6;
+  stroke-linejoin: round;
+}
+.rk-window {
+  fill: #59c8ff;
+  stroke: var(--toon-ink);
+  stroke-width: 2.6;
+}
+.rk-nozzle {
+  fill: #9aa0bd;
+  stroke: var(--toon-ink);
+  stroke-width: 2.2;
+}
+.rk-flame {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  scale: 0.55 0.35;
+  transition: scale 0.3s var(--toon-bouncy);
+}
+.rk-puff {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  width: calc(var(--s) * 24px);
+  height: calc(var(--s) * 24px);
+  margin-left: calc(var(--s) * -12px);
+  border: 2.5px solid var(--toon-ink);
+  border-radius: 50%;
+  background: #fffdf7;
+  box-shadow: inset -3px -3px 0 rgb(27 21 48 / 0.12);
+  scale: 0;
+}
+.rk-go {
+  font-size: 22px;
+  --sfx-fill: #a77bff;
+  opacity: 0;
+  scale: 0.6;
+  transition:
+    opacity 0.2s,
+    scale 0.4s var(--toon-bouncy);
+}
+.rk-go[data-k="0"] {
+  right: 52px;
+  top: -14px;
+  rotate: -14deg;
+}
+.rk-go[data-k="1"] {
+  right: 74px;
+  top: -30px;
+  rotate: -6deg;
+  font-size: 26px;
+}
+.rk-go[data-k="2"] {
+  right: 100px;
+  top: -40px;
+  rotate: 4deg;
+  font-size: 30px;
+}
+
+/* countdown: rumble, flame, smoke, ゴゴゴ */
+.toon[data-toon="rocket"][data-hover] .rk-rocket {
+  animation: rk-rumble 0.12s steps(2) infinite;
+}
+.toon[data-toon="rocket"][data-hover] .rk-flame {
+  scale: 1;
+  animation: rk-flicker 0.1s steps(2) infinite;
+}
+.toon[data-toon="rocket"][data-hover] .rk-puff {
+  animation: rk-puff 0.9s ease-out infinite;
+  animation-delay: var(--d);
+}
+.toon[data-toon="rocket"][data-hover] .rk-star {
+  animation: toon-twinkle 1.4s ease-out infinite;
+  animation-delay: var(--d);
+}
+.toon[data-toon="rocket"][data-hover] .rk-go {
+  opacity: 1;
+  scale: 1;
+  animation: rk-throb 0.5s ease-in-out infinite alternate;
+}
+.toon[data-toon="rocket"][data-hover] .rk-go[data-k="1"] {
+  transition-delay: 0.08s;
+  animation-delay: 0.1s;
+}
+.toon[data-toon="rocket"][data-hover] .rk-go[data-k="2"] {
+  transition-delay: 0.16s;
+  animation-delay: 0.2s;
+}
+.toon[data-toon="rocket"][data-press] .rk-rocket {
+  scale: 1.08 0.88;
+}
+/* liftoff */
+.toon[data-toon="rocket"][data-go] .rk-rocket {
+  animation: rk-launch 0.5s forwards;
+}
+.toon[data-toon="rocket"][data-go] .rk-flame {
+  scale: 1.2 1.6;
+}
+.toon[data-toon="rocket"][data-go] .rk-puff {
+  animation: rk-blast 0.5s ease-out forwards;
+}
+.toon[data-toon="rocket"][data-go] .rk-speed {
+  opacity: 0.9;
+}
+.toon[data-toon="rocket"][data-go] .rk-speed g {
+  animation: rk-stream 0.22s linear infinite;
+}
+.toon[data-toon="rocket"][data-go] .rk-go {
+  opacity: 0;
+}
+
+@keyframes rk-rumble {
+  0% {
+    translate: -0.8px 0.4px;
+    rotate: -1.6deg;
+  }
+  100% {
+    translate: 0.8px -0.4px;
+    rotate: 1.6deg;
+  }
+}
+@keyframes rk-flicker {
+  0% {
+    scale: 1 0.9;
+  }
+  100% {
+    scale: 0.9 1.12;
+  }
+}
+@keyframes rk-puff {
+  0% {
+    translate: 0 0;
+    scale: 0.2;
+  }
+  55% {
+    translate: var(--dx) var(--dy);
+    scale: 1;
+  }
+  100% {
+    translate: calc(var(--dx) * 1.3) calc(var(--dy) - 8px);
+    scale: 0;
+  }
+}
+@keyframes rk-blast {
+  0% {
+    translate: 0 0;
+    scale: 0.4;
+  }
+  60% {
+    translate: calc(var(--dx) * 1.8) calc(var(--dy) - 4px);
+    scale: 1.5;
+  }
+  100% {
+    translate: calc(var(--dx) * 2.2) calc(var(--dy) - 10px);
+    scale: 0;
+  }
+}
+@keyframes rk-launch {
+  0% {
+    translate: 0 0;
+    scale: 1;
+    animation-timing-function: ease-out;
+  }
+  20% {
+    translate: 0 5px;
+    scale: 1.12 0.82;
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.4);
+  }
+  100% {
+    translate: 0 -360px;
+    scale: 0.85 1.4;
+  }
+}
+@keyframes rk-stream {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: 0 100px;
+  }
+}
+@keyframes rk-throb {
+  to {
+    scale: 1.14;
+  }
+}

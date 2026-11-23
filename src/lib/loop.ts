@@ -33,19 +33,3 @@ export function createLoop(tick: (dt: number) => boolean) {
 }
 
 export type Loop = ReturnType<typeof createLoop>;
-
-/** Keeps a canvas' backing store at its CSS size × DPR (capped). Returns the scale it applied. */
-export function fitCanvas(canvas: HTMLCanvasElement, maxDpr = 2) {
-  const r = canvas.getBoundingClientRect();
-  const dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
-  const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
-  if (canvas.width !== w || canvas.height !== h) {
-    canvas.width = w;
-    canvas.height = h;
-  }
-  return { width: r.width, height: r.height, dpr };
-}
-
-/** Test hook every effect canvas exposes as `canvas.__fx`. */
-export type FxHandle = { running(): boolean; energy(): number };
-export const exposeFx = (canvas: HTMLCanvasElement, fx: FxHandle) => ((canvas as HTMLCanvasElement & { __fx?: FxHandle }).__fx = fx);
