@@ -1,0 +1,75 @@
+/* FilingsButton: a bar magnet (blue S, red N) under paper sprinkled with iron filings. */
+.fl-btn {
+  --fl-paper: #f4f0e6;
+  --fl-ink: #1d1b22;
+  --fl-fg: #16151a;
+  --fl-meta: rgb(22 21 26 / 0.6);
+  --fl-s: #2f5bd3;
+  --fl-n: #d63a2f;
+  --fl-cap: 22px;
+  --fl-radius: 22px;
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 76px;
+  padding: 0 calc(var(--fl-cap) + 1.1rem);
+  overflow: hidden;
+  border-radius: var(--fl-radius);
+  background: var(--fl-paper);
+  color: var(--fl-fg);
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.06),
+    0 14px 30px -20px rgb(10 8 30 / 0.45);
+  outline: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.dark .fl-btn {
+  --fl-paper: #16161c;
+  --fl-ink: #d9d8e2;
+  --fl-fg: #f2f2f5;
+  --fl-meta: rgb(242 242 245 / 0.6);
+}
+.fl-btn:focus-visible {
+  box-shadow: 0 0 0 3px var(--ring);
+}
+.fl-btn__canvas {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+}
+.fl-btn__cap {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: var(--fl-cap);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+}
+.fl-btn__cap--s {
+  left: 0;
+  background: var(--fl-s);
+}
+.fl-btn__cap--n {
+  right: 0;
+  background: var(--fl-n);
+}
+.fl-btn__label {
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.fl-btn__meta {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.75rem;
+  color: var(--fl-meta);
+}

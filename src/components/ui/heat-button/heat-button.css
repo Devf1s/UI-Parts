@@ -1,0 +1,90 @@
+/* HeatButton: a thermal-camera view of a button. Colours: --heat-cold is the untouched surface. */
+.heat-btn {
+  --heat-cold: rgb(14 12 36);
+  --heat-fg: #ffffff;
+  --heat-meta: rgb(255 255 255 / 0.62);
+  --heat-radius: 22px;
+  --heat: 0;
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 76px;
+  padding: 0 1.5rem;
+  overflow: hidden;
+  border-radius: var(--heat-radius);
+  background: var(--heat-cold);
+  color: var(--heat-fg);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.08),
+    0 14px 30px -18px rgb(10 8 30 / 0.7);
+  outline: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.heat-btn:focus-visible {
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.08),
+    0 0 0 3px var(--ring);
+}
+.heat-btn__img {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  /* the cell grid is stretched with bilinear filtering: soft like a real thermal image */
+  image-rendering: auto;
+}
+/* sensor scanlines and a vignette */
+.heat-btn__scan {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(to bottom, rgb(0 0 0 / 0.16) 0 1px, transparent 1px 3px),
+    radial-gradient(120% 140% at 50% 50%, transparent 55%, rgb(0 0 0 / 0.35));
+}
+.heat-btn__label {
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  /* the label starts to glow as the surface warms up */
+  text-shadow: 0 0 calc(var(--heat) * 18px) rgb(255 236 200 / calc(var(--heat) * 0.9));
+}
+.heat-btn__meta {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.75rem;
+  color: var(--heat-meta);
+}
+.heat-btn__temp {
+  position: absolute;
+  top: 7px;
+  right: 12px;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: rgb(255 255 255 / 0.75);
+  pointer-events: none;
+}
+/* crosshair on the hottest spot */
+.heat-btn__spot {
+  position: absolute;
+  top: -7px;
+  left: -7px;
+  width: 14px;
+  height: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms;
+  background:
+    linear-gradient(#fff, #fff) 50% 0 / 1px 4px no-repeat,
+    linear-gradient(#fff, #fff) 50% 100% / 1px 4px no-repeat,
+    linear-gradient(#fff, #fff) 0 50% / 4px 1px no-repeat,
+    linear-gradient(#fff, #fff) 100% 50% / 4px 1px no-repeat;
+  mix-blend-mode: difference;
+}
