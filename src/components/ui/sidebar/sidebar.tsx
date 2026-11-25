@@ -16,6 +16,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -129,6 +130,18 @@ function SidebarRoot({
 
   // Close the drawer when we leave mobile layout (rotation, resize).
   if (!isMobile && drawerOpen) setDrawerOpen(false);
+
+  // A page that is navigated away from is hidden (Activity), not unmounted: coming back must not
+  // find the drawer open or the rail stuck in its hover state.
+  useLayoutEffect(
+    () => () => {
+      window.clearTimeout(hoverTimer.current);
+      setHovered(false);
+      setKeyboardFocus(false);
+      setDrawerOpen(false);
+    },
+    [],
+  );
 
   // Touch tablets: "pinned" acts as a temporary open state, close on outside tap / Esc.
   useEffect(() => {
