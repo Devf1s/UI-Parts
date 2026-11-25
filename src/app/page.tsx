@@ -22,7 +22,8 @@ const TITLE = "Where to?";
 export default function Home() {
   return (
     <div className={`home ${fredoka.variable} relative flex min-h-dvh flex-col`}>
-      <header className="flex items-center justify-between gap-3 px-4 py-4 sm:px-8">
+      {/* above main: the title's letters drop in from above it and must never cover the switches */}
+      <header className="z-10 flex items-center justify-between gap-3 px-4 py-4 sm:px-8">
         <p className="home-logo">devf1s</p>
         <div className="flex items-center gap-2">
           <SoundToggle />
