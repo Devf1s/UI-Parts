@@ -22,14 +22,14 @@ export function SampleDock() {
   return (
     <nav
       aria-label="Portfolio samples"
-      className="pf-dock fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-full p-1 text-[13px]"
+      className="pf-dock fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-full p-1 text-[13px] max-[359px]:gap-0.5 max-[359px]:text-xs"
     >
       <Link
         href="/"
         {...intent("/")}
         aria-label="All pages"
         title="All pages"
-        className="grid size-9 shrink-0 place-items-center rounded-full text-[var(--dock-muted)] outline-none transition-colors hover:text-[var(--dock-fg)] focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+        className="grid size-9 shrink-0 place-items-center rounded-full max-[359px]:size-8 text-[var(--dock-muted)] outline-none transition-colors hover:text-[var(--dock-fg)] focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
       >
         <Home className="size-4" />
       </Link>
@@ -44,7 +44,7 @@ export function SampleDock() {
                 {...intent(href)}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative flex h-9 items-center rounded-full px-3 font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--ring)]",
+                  "relative flex h-9 items-center rounded-full px-3 font-medium max-[359px]:px-2 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--ring)]",
                   active ? "text-[var(--dock-active-fg)]" : "text-[var(--dock-muted)] hover:text-[var(--dock-fg)]",
                 )}
               >
@@ -57,7 +57,8 @@ export function SampleDock() {
           );
         })}
       </ul>
-      <ThemeToggle className="ml-0.5 bg-[var(--dock-well)]" />
+      {/* the smallest phones (320 px) get a tighter dock so that all of it stays on screen */}
+      <ThemeToggle className="ml-0.5 bg-[var(--dock-well)] max-[359px]:[&_button]:size-6" />
     </nav>
   );
 }

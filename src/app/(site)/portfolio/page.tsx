@@ -34,7 +34,7 @@ export default function SymbiotePage() {
     <div id="symbiote" className="pf-symbiote pf-grain relative min-h-dvh overflow-x-clip bg-[var(--sym-bg)] text-[var(--sym-fg)]">
       <header className="absolute inset-x-0 top-0 z-20">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-10">
-          <a href="#top" className="font-mono text-sm font-semibold tracking-tight outline-none focus-visible:underline">
+          <a href="#top" className="-my-3 inline-block py-3 font-mono text-sm font-semibold tracking-tight outline-none focus-visible:underline">
             {PROFILE.handle.toLowerCase()}
             <span className="text-[var(--ink-rim)]">/</span>
           </a>
