@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { createGL, programsReady } from "./gl";
+import { createGL, forgetPrograms, programsReady } from "./gl";
 
 /**
  * "full": ambient animation runs while the canvas is on screen.
@@ -288,7 +288,14 @@ export function useGLScene<S extends Scene>(
       } catch {
         /* context already gone */
       }
+      forgetPrograms(gl);
       sceneRef.current = null;
+      // A hidden route (Activity) keeps its DOM, so the canvas and its context stay for when it is
+      // shown again. A canvas that has really left the page gives its context back at once instead
+      // of waiting for the garbage collector (browsers cap live contexts at ~16).
+      setTimeout(() => {
+        if (!canvas.isConnected) gl.getExtension("WEBGL_lose_context")?.loseContext();
+      });
       c.wake = () => {};
       c.invalidate = () => {};
     };
