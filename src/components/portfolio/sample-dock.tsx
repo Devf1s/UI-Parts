@@ -1,10 +1,10 @@
 "use client";
 
 import { Home } from "lucide-react";
-import { m } from "motion/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useIndicator } from "@/hooks/use-indicator";
 import { cn } from "@/lib/cn";
 import { SAMPLES } from "./samples";
 
@@ -12,6 +12,7 @@ import { SAMPLES } from "./samples";
 export function SampleDock() {
   const path = usePathname();
   const router = useRouter();
+  const pill = useIndicator<HTMLSpanElement>();
   // The dock is on screen on every page, so viewport prefetching would download the code of every
   // other page on first load. Prefetch a page once the visitor points at or focuses its link.
   const intent = (href: string) => {
@@ -48,11 +49,7 @@ export function SampleDock() {
                 )}
               >
                 {active && (
-                  <m.span
-                    layoutId="pf-dock-pill"
-                    className="absolute inset-0 rounded-full bg-[var(--dock-active)]"
-                    transition={{ type: "spring", stiffness: 420, damping: 36 }}
-                  />
+                  <span ref={pill} aria-hidden className="pointer-events-none absolute inset-0 rounded-full bg-[var(--dock-active)]" />
                 )}
                 <span className="relative">{s.title}</span>
               </Link>
@@ -60,7 +57,7 @@ export function SampleDock() {
           );
         })}
       </ul>
-      <ThemeToggle layoutId="pf-theme-pill" className="ml-0.5 bg-[var(--dock-well)]" />
+      <ThemeToggle className="ml-0.5 bg-[var(--dock-well)]" />
     </nav>
   );
 }

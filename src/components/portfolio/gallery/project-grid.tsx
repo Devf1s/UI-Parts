@@ -3,6 +3,7 @@
 import { ArrowUpRight } from "lucide-react";
 import { m } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import { MotionProvider } from "@/components/motion-provider";
 import { useMounted } from "@/hooks/use-media-query";
 import { byCategory, CATEGORIES, hostOf, languageColor, type Category, type Project } from "@/data/portfolio";
 import { cn } from "@/lib/cn";
@@ -17,7 +18,15 @@ type Filter = Category | "all";
  * (so filtering animates with Motion's layout animations and WebGL follows); the CSS covers stay
  * underneath as the fallback. A "View" cursor follows the mouse over the cards.
  */
-export function ProjectGrid({ projects }: { projects: Project[] }) {
+export function ProjectGrid(props: { projects: Project[] }) {
+  return (
+    <MotionProvider>
+      <Grid {...props} />
+    </MotionProvider>
+  );
+}
+
+function Grid({ projects }: { projects: Project[] }) {
   const [filter, setFilter] = useState<Filter>("all");
   // server HTML and the first paint show every card as is; only later changes animate in
   const mounted = useMounted();

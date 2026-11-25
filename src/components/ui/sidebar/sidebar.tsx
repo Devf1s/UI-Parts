@@ -22,6 +22,7 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
+import { MotionProvider } from "@/components/motion-provider";
 import { useCanHover, useMediaQuery, usePrefersReducedMotion } from "@/hooks/use-media-query";
 import { cn } from "@/lib/cn";
 import { displacementMap, shapePath, supportsRefraction } from "./sidebar-glass";
@@ -85,7 +86,16 @@ const EASE = [0.32, 0.72, 0, 1] as const;
 
 /* ------------------------------------------------------------------ */
 
-export function Sidebar({
+/** Brings its own Motion scope, so it can be dropped into any page. */
+export function Sidebar(props: SidebarProps) {
+  return (
+    <MotionProvider>
+      <SidebarRoot {...props} />
+    </MotionProvider>
+  );
+}
+
+function SidebarRoot({
   sections,
   activeId,
   onNavigate,
