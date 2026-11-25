@@ -1,11 +1,9 @@
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
-import { Fredoka } from "next/font/google";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BoxerButton, NekoButton, PopupButton, RocketButton, SoundToggle } from "@/components/ui/toon-button";
+import { fredoka } from "@/fonts/fredoka";
 import "./home.css";
-
-const toon = Fredoka({ subsets: ["latin"], variable: "--font-toon", display: "swap" });
 
 export const metadata: Metadata = {
   title: { absolute: "Devf1s · UI parts" },
@@ -17,7 +15,7 @@ const TITLE = "Where to?";
 /** Every page of the site, in the middle of the screen, each behind a cartoon button. */
 export default function Home() {
   return (
-    <div className={`home ${toon.variable} relative flex min-h-dvh flex-col`}>
+    <div className={`home ${fredoka.variable} relative flex min-h-dvh flex-col`}>
       <header className="flex items-center justify-between gap-3 px-4 py-4 sm:px-8">
         <p className="home-logo">devf1s</p>
         <div className="flex items-center gap-2">
