@@ -100,6 +100,23 @@ test("every button plays its exit gag, then opens its page", async ({ page }, in
   await expect(page).toHaveURL(/\/portfolio$/);
 });
 
+test("going back after a gag shows the index at rest", async ({ page }, info) => {
+  // pages navigated away from are kept hidden (Activity) for the way back; their timers stop
+  const touch = info.project.name !== "desktop";
+  await load(page);
+  if (touch) await link(page, "UI parts").tap();
+  else await link(page, "UI parts").click();
+  await expect(page).toHaveURL(/\/test$/);
+  await page.mouse.move(4, 4);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/$/);
+  const l = link(page, "UI parts");
+  await expect(l).toBeVisible();
+  await expect(l).not.toHaveAttribute("data-go");
+  await expect(l).not.toHaveAttribute("data-press");
+  await expect(page.locator(".toon__lines").first()).toHaveCSS("opacity", "0");
+});
+
 test("keyboard: tab order follows the list, focus is visible and wakes the character", async ({ page }, info) => {
   desktopOnly(info.project.name);
   await load(page);
