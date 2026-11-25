@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useIndicator } from "@/hooks/use-indicator";
 import { cn } from "@/lib/cn";
+import { PAGES } from "@/site/pages";
 import { SAMPLES } from "./samples";
 
 /** Floating dock to hop between portfolio samples, switch theme and get back to the list of all pages. */
@@ -25,8 +26,8 @@ export function SampleDock() {
       className="pf-dock fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-full p-1 text-[13px] max-[359px]:gap-0.5 max-[359px]:text-xs"
     >
       <Link
-        href="/"
-        {...intent("/")}
+        href={PAGES.home.href}
+        {...intent(PAGES.home.href)}
         aria-label="All pages"
         title="All pages"
         className="grid size-9 shrink-0 place-items-center rounded-full max-[359px]:size-8 text-[var(--dock-muted)] outline-none transition-colors hover:text-[var(--dock-fg)] focus-visible:ring-2 focus-visible:ring-[var(--ring)]"

@@ -1,5 +1,4 @@
 import { ArrowUpRight } from "lucide-react";
-import type { Metadata } from "next";
 import { HeroActions } from "@/components/portfolio/symbiote/hero-actions";
 import { InkCanvas } from "@/components/portfolio/symbiote/ink-hero";
 import { WorkIndex } from "@/components/portfolio/symbiote/work-index";
@@ -17,12 +16,13 @@ import {
   stackStats,
   yearStats,
 } from "@/data/portfolio";
+import { pageMetadata } from "@/site/pages";
 import "@/components/portfolio/symbiote/symbiote.css";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata("portfolio", {
   title: { absolute: `${PROFILE.name} · Portfolio` },
   description: `${PROFILE.role}: ${PROJECTS.length} public projects on GitHub, from hand-coded landing pages to React apps and WebGL.`,
-};
+});
 
 export default function SymbiotePage() {
   const years = yearStats();

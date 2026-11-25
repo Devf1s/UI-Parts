@@ -1,13 +1,10 @@
-import type { Metadata } from "next";
 import { ClothPoster } from "@/components/portfolio/gallery/cloth-poster";
 import { ProjectGrid } from "@/components/portfolio/gallery/project-grid";
 import { SharePanel } from "@/components/portfolio/share-panel";
 import { byCategory, CATEGORIES, languageStats, monthYear, PROFILE, PROJECTS, stackStats, yearStats, type Category } from "@/data/portfolio";
+import { pageMetadata } from "@/site/pages";
 
-export const metadata: Metadata = {
-  title: "Gallery",
-  description: "Portfolio sample: an editorial gallery of Devf1s’ GitHub projects with a WebGL cloth poster and covers that bend with the scroll.",
-};
+export const metadata = pageMetadata("gallery");
 
 export default function GalleryPage() {
   const years = yearStats();

@@ -1,10 +1,7 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@/site/pages";
 import { Showcase } from "./showcase";
 
-export const metadata: Metadata = {
-  title: "UI parts — sidebar & venom button",
-  description: "Animated sidebar and a liquid “venom” cursor button. Next.js + TypeScript + Tailwind + Motion.",
-};
+export const metadata = pageMetadata("lab");
 
 /** The component showcase: curved glass sidebar and venom button on a neutral landing page. */
 export default function TestPage() {
