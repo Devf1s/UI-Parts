@@ -8,6 +8,7 @@ Small, production-minded UI components for a portfolio landing, built with
 | Component | What it does |
 | --- | --- |
 | `Sidebar` | Curved glass panel: a slab with an hourglass waist, lens refraction at the rim (Chromium) or frosted blur elsewhere, and an iridescent rim light. Rail that expands on hover (desktop), on tap (touch tablets), swipeable drawer on phones. Profile card, nested groups on a tree line, sliding glass pill, promo card, scroll-spy friendly. |
+| `NekoButton`, `PopupButton`, `RocketButton`, `BoxerButton` | Cartoon / anime buttons with a character living on each: a cat peeking over the edge whose eyes follow the cursor, polaroids that spring out with falling sakura petals, a rocket that rumbles (ゴゴゴ) and lifts off, a jack-in-the-box glove that punches (POW!). Thick ink outlines, cel shine, screentone, squash and stretch, manga focus lines, optional synthesised sound effects. |
 | `VenomButton` | Black "symbiote" button rendered as a lit 3D scene (WebGL2). Strings sprout on the edge as the cursor nears, 2–6 glossy tendrils lunge out and coil around the cursor (which becomes a 3D hand), stretch, bead and web together as you pull, then pinch off and recoil. Idle bursts keep it alive. Falls back to a 2D canvas without a GPU. |
 
 ```bash
@@ -16,6 +17,48 @@ npm run dev     # http://localhost:3000
 npm run build   # production build + type check
 npm run test:all  # lint, types, unit, build, e2e (see Testing)
 ```
+
+## Pages
+
+| Route | Page |
+| --- | --- |
+| [`/`](https://ui-parts.vercel.app/) | Index of every page in a cartoon / anime style, each behind a button with a character on it. |
+| [`/portfolio`](https://ui-parts.vercel.app/portfolio) | The portfolio (Symbiote design). |
+| [`/portfolio/gallery`](https://ui-parts.vercel.app/portfolio/gallery), [`/portfolio/orbit`](https://ui-parts.vercel.app/portfolio/orbit) | Two alternative portfolio designs on the same data. |
+| [`/test`](https://ui-parts.vercel.app/test) | The UI parts lab: glass sidebar and venom button. |
+
+## Portfolio
+
+The portfolio is built from the author's public GitHub repositories (Devf1s). It comes in three
+designs, each with its own WebGL scene, the venom button and a share panel; a floating dock
+switches between them and the theme, and its home button goes back to the index.
+
+| Design | Idea | WebGL |
+| --- | --- | --- |
+| [`/portfolio`](https://ui-parts.vercel.app/portfolio) · Symbiote | Dark, inky landing; an index of projects with a floating preview, an archive table. | Full-screen metaball ink that reaches for the cursor; the hover preview cross-fades covers and splits RGB with cursor speed. |
+| [`/portfolio/gallery`](https://ui-parts.vercel.app/portfolio/gallery) · Gallery | Editorial grid with category filters. | A poster hanging as cloth (drawn with the page's fonts), cover planes synced to the DOM cards that bend with scroll velocity and ripple on hover. |
+| [`/portfolio/orbit`](https://ui-parts.vercel.app/portfolio/orbit) · Orbit | Every repository as a star, with a bento of stats and search. | A point-sprite galaxy: newest repos near the core, oldest at the rim, coloured by language; drag to spin, pick a star to open its card. |
+
+**Data.** `npm run sync:github` fetches the public, non-fork, non-archived repositories into
+`src/data/github-repos.json`; `src/data/portfolio.ts` adds titles, categories and the featured
+order on top. Only public repositories are ever fetched or listed.
+
+**WebGL kit** (`src/lib/gl`): `useGLScene` creates a WebGL2 scene for a canvas, sizes it with the
+DPR capped, runs one loop only while the scene is on screen and something moves (ambient motion or
+`wake(ms)` after input), stops when the canvas scrolls away or the tab hides, and reports `"on"` or
+`"off"`. Shaders compile in the background (`KHR_parallel_shader_compile`): the first frame is drawn
+once they are ready, so creating a scene never stalls the page, and a scene can wait to be created
+until it is first needed (`enabled`), as the Symbiote hover preview does. Without WebGL2, or after a lost context, each sample shows a CSS or 2D canvas version of
+the same art. Software rasterisers (CI, VMs) draw still frames, redrawn on resize, theme change or
+input, and so does `prefers-reduced-motion`.
+
+**Share.** The venom button opens the native share sheet where there is one and copies the link
+otherwise, with a polite status message.
+
+Testing hooks: set `window.__PF_GL__ = "force"` (WebGL even on a software rasteriser) or `"off"`
+(fallbacks) before load; each scene canvas exposes `__pf` with `step(dt)` to render deterministic frames.
+The cat's SVG exposes `__toon` (`running()`, `look()`), and `window.__uiSound.plays()` counts the
+sound effects played.
 
 ## Usage
 
@@ -44,6 +87,39 @@ import { VenomButton } from "@/components/ui/venom-button";
 
 <VenomButton tendrils={6} reach={140}>let’s collaborate</VenomButton>
 ```
+
+### Toon buttons (the index)
+
+All four share `ToonButton`: give them `href` and they render a link (internal links prefetch on
+hover or focus, not on load), leave it out and they are a `<button>` with `onClick`. `meta` is the
+small line under the label, `tone` the fill colour, `index` staggers the drop-in entrance in a list.
+
+- **Animation principles:** the buttons drop in with squash and stretch, wobble like jelly when
+  pointed at, squash into their hard shadow when pressed. Two-state moves use damped springs sampled
+  into CSS `linear()` (with a `cubic-bezier` fallback), multi-step moves are keyframes.
+- **Characters** are decorative SVG (`aria-hidden`) behind and in front of the button, driven by
+  `data-hover`, `data-press` and `data-go`. Keyboard focus wakes them like a hover.
+- **Exit gag:** a plain click on an internal link plays a short gag (manga focus lines plus the
+  character's move, 420–480 ms), then navigates; modified clicks, external links and reduced motion
+  navigate at once.
+- **Cost:** everything is CSS on compositor-friendly properties except the cat's eyes, which run a
+  small spring loop only while the pointer moves and sleep off screen. An untouched page is idle.
+- **Sound** is off until the visitor turns it on with `SoundToggle`; the effects (pop, mew, fwip,
+  rumble, whoosh, boing, pow) are synthesised with Web Audio, no files. `sound.play(name)` is exported.
+
+```tsx
+import { BoxerButton, NekoButton, PopupButton, RocketButton, SoundToggle } from "@/components/ui/toon-button";
+
+<NekoButton href="/portfolio" meta="/portfolio" index={0}>Portfolio</NekoButton>
+<PopupButton href="/portfolio/gallery" tone="#ffb3d9" index={1}>Gallery</PopupButton>
+<RocketButton href="/portfolio/orbit" index={2}>Orbit</RocketButton>
+<BoxerButton onClick={save}>Save</BoxerButton>
+<SoundToggle />
+```
+
+CSS variables on `.toon`: `--toon-fill`, `--toon-ink`, `--toon-shadow`, `--toon-ring`,
+`--toon-line` (outline width), `--toon-lift` (shadow depth), `--toon-radius`, `--toon-height`,
+`--toon-art-w` (room for the character), `--toon-bouncy` / `--toon-soft` (spring curves).
 
 ### Sidebar props
 
@@ -119,6 +195,11 @@ CSS variables: `--venom-color` (body and goo), `--venom-color-2` (rim lights and
   (`IntersectionObserver`); far-away pointer moves are rejected without waking it.
 - Idle bursts are scheduled with a timer while the loop sleeps, so an idle page costs nothing between bursts.
 - Scroll-spy uses `IntersectionObserver`, not scroll listeners.
+- **The venom WebGL engine loads lazily:** the ray marcher and its shaders (≈ 21 kB compressed)
+  are fetched only once a button scrolls into view, so pages with the button below the fold don't
+  pay for it up front.
+- **Portfolio pages stay under the same 250 kB JS budget:** each sample's scene code ships only
+  with its page, and the dock prefetches another page when you point at or focus its link, not on load.
 
 ## Responsive & accessibility
 
@@ -136,7 +217,7 @@ CSS variables: `--venom-color` (body and goo), `--venom-color-2` (rim lights and
 
 | Command | What runs |
 | --- | --- |
-| `npm test` | Vitest unit tests for the venom physics: outline geometry (pill and rounded rectangle), sense/reach thresholds, tendril cap, grab, snap and sleep, stability under erratic input, determinism. |
+| `npm test` | Vitest unit tests for the venom physics: outline geometry (pill and rounded rectangle), sense/reach thresholds, tendril cap, grab, snap and sleep, stability under erratic input, determinism. Plus the portfolio data (only public repos, unique slugs, stats), galaxy maths (placement, projection, picking), the share fallback chain and colour parsing, and the toon maths: where an eye looks, the pupil spring, seeded focus lines and impact bursts. |
 | `npm run test:e2e` | Playwright against the production build (`npm run build` first) on four devices: desktop 1440×900, iPad Mini, Pixel 7, iPhone SE. |
 | `npm run test:all` | Lint, types, unit, build and e2e, the same as CI. |
 
@@ -148,7 +229,9 @@ The e2e suite covers:
 - **Venom button:** real labelled button, canvas never blocks clicks, mouse grab and release, touch autoplay, theme switch,
   fallback to 2D without a GPU, and the WebGL renderer itself (forced on over SwiftShader and stepped
   deterministically): slab and transparent floor drawn, tendrils latch and snap, the 3D cursor appears and goes.
-- **Performance budgets:** LCP < 2.5 s, CLS < 0.1, first-load JS < 250 kB compressed, idle main thread < 10 %, p95 frame < 50 ms with 4× CPU throttle, off-screen canvases stop drawing.
+- **Portfolio samples:** each renders its WebGL scene without errors, falls back without WebGL, passes axe in both themes, keeps one h1 and no sideways scroll, never lets a canvas block clicks, pauses off screen and under reduced motion; plus per-sample usability (index preview, filters, star picking, search, share sheet and clipboard fallback, dock).
+- **Index:** every page listed in order and centred, no sideways scroll, every button plays its exit gag and opens its page (tap on touch), keyboard order, visible focus that wakes the character, axe in both themes; the cat's eyes follow the pointer and settle, it pops up on hover and squints on a press; the pictures spring out and tuck back; the rocket rumbles and lifts off; the glove boings out and punches; sound stays off until switched on; reduced motion (no entrance, links open at once); and a page left alone goes fully idle.
+- **Performance budgets:** LCP < 2.5 s, CLS < 0.1, first-load JS < 250 kB compressed, idle main thread < 10 % (index, lab and every portfolio page), p95 frame < 50 ms with 4× CPU throttle, off-screen canvases stop drawing.
 
 CI (`.github/workflows/ci.yml`) runs all of it on every pull request. If you already have Chromium installed, point the tests at it with `PW_CHROMIUM_PATH=/path/to/chrome`.
 

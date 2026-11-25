@@ -1,0 +1,376 @@
+/*
+ * Toon buttons: thick ink outline, flat fill with a cel highlight and a screentone shade, a hard
+ * drop shadow, and classic animation principles (squash and stretch, anticipation, overshoot,
+ * follow-through). Everything is keyed off data-hover / data-press / data-go on the root.
+ * Two-state moves use spring curves (CSS linear()); multi-step moves are keyframes.
+ */
+.toon {
+  --toon-ink: #1b1530;
+  --toon-fill: #ffd447;
+  --toon-shadow: var(--toon-ink);
+  --toon-ring: #7c5cff;
+  --toon-spark: #fff;
+  --toon-line: 3px;
+  --toon-lift: 6px;
+  --toon-radius: 24px;
+  --toon-height: 76px;
+  /* room on the right of the label for the character */
+  --toon-art-w: 8.5rem;
+  /* damped springs (ζ≈0.32 and ζ≈0.55), sampled into linear() */
+  --toon-bouncy: linear(0, 0.064, 0.23, 0.456, 0.701, 0.931 11%, 1.12, 1.254, 1.328, 1.345, 1.317 23%, 1.255, 1.175, 1.09, 1.013, 0.95 34%, 0.907, 0.884, 0.881, 0.893, 0.916 45%, 0.944, 0.973, 0.999, 1.02, 1.034 57%, 1.041, 1.041, 1.036, 1.028, 1.018 68%, 1.008, 0.999, 0.992, 0.988, 0.986 80%, 0.986, 0.988, 0.991, 0.994, 0.998 91%, 1.001, 1.003, 1.004, 1);
+  --toon-soft: linear(0, 0.06, 0.207, 0.393, 0.586, 0.76 17%, 0.903, 1.008, 1.078, 1.115, 1.126 33%, 1.12, 1.102, 1.079, 1.054, 1.032 50%, 1.014, 1, 0.991, 0.986, 0.984 67%, 0.985, 0.987, 0.99, 0.993, 0.996 83%, 0.998, 1, 1.001, 1.002, 1);
+  position: relative;
+  display: block;
+  isolation: isolate;
+  color: var(--toon-ink);
+  text-decoration: none;
+  outline: none;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transform-origin: 50% 100%;
+  animation: toon-drop 0.9s backwards;
+  animation-delay: calc(var(--i, 0) * 110ms + 100ms);
+}
+@supports not (transition-timing-function: linear(0, 1)) {
+  .toon {
+    --toon-bouncy: cubic-bezier(0.34, 1.7, 0.6, 1);
+    --toon-soft: cubic-bezier(0.34, 1.35, 0.6, 1);
+  }
+}
+.dark .toon {
+  --toon-shadow: #05030c;
+  --toon-ring: #b9a6ff;
+}
+
+/* ── the button itself ───────────────────────────────────────────── */
+.toon__body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  min-height: var(--toon-height);
+  padding: 0.6rem var(--toon-art-w) 0.75rem 1.35rem;
+  border: var(--toon-line) solid var(--toon-ink);
+  border-radius: var(--toon-radius);
+  background: var(--toon-fill);
+  box-shadow:
+    0 var(--toon-lift) 0 var(--toon-shadow),
+    inset 0 -6px 0 rgb(0 0 0 / 0.09),
+    inset 0 4px 0 rgb(255 255 255 / 0.42);
+  overflow: clip;
+  transform-origin: 50% 100%;
+  transition:
+    transform 0.5s var(--toon-soft),
+    translate 0.5s var(--toon-soft),
+    box-shadow 0.15s ease-out;
+}
+/* cel shine: a pill and a dot, the classic cartoon highlight */
+.toon__body::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 16px;
+  width: 42px;
+  height: 8px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='42' height='8'%3E%3Crect y='.5' width='27' height='7' rx='3.5' fill='%23fff' fill-opacity='.78'/%3E%3Ccircle cx='36' cy='4' r='3.5' fill='%23fff' fill-opacity='.78'/%3E%3C/svg%3E") no-repeat;
+  pointer-events: none;
+}
+/* manga screentone in the shaded corner */
+.toon__body::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgb(27 21 48 / 0.2) 1.1px, transparent 1.5px) 0 0 / 7px 7px;
+  -webkit-mask: linear-gradient(168deg, transparent 58%, #000 92%);
+  mask: linear-gradient(168deg, transparent 58%, #000 92%);
+  pointer-events: none;
+}
+.toon__inside {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.toon__text {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 4px;
+}
+.toon__label {
+  font-family: var(--font-toon, var(--font-sans));
+  font-size: 1.625rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.005em;
+}
+.toon__meta {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--toon-ink) 82%, var(--toon-fill));
+}
+
+/* the character layers: behind the button and in front of it */
+.toon__back,
+.toon__front {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: translate 0.5s var(--toon-soft);
+}
+.toon__back {
+  z-index: 0;
+}
+.toon__front {
+  z-index: 2;
+}
+
+/* ── states ──────────────────────────────────────────────────────── */
+.toon[data-hover] .toon__body {
+  animation: toon-jelly 0.75s;
+}
+.toon[data-press] .toon__body {
+  translate: 0 calc(var(--toon-lift) - 1px);
+  transform: scale(1.025, 0.93);
+  box-shadow:
+    0 1px 0 var(--toon-shadow),
+    inset 0 -4px 0 rgb(0 0 0 / 0.09),
+    inset 0 3px 0 rgb(255 255 255 / 0.42);
+  transition-duration: 0.08s;
+}
+.toon[data-press] :is(.toon__back, .toon__front) {
+  translate: 0 calc(var(--toon-lift) - 1px);
+  transition-duration: 0.08s;
+}
+.toon[data-go] .toon__body {
+  animation: toon-boing 0.5s;
+}
+.toon:focus-visible .toon__body {
+  outline: 3px solid var(--toon-ring);
+  outline-offset: 4px;
+}
+
+/* manga focus lines (集中線) behind the button while the exit gag plays */
+.toon__lines {
+  position: absolute;
+  inset: -36px -48px;
+  z-index: -1;
+  color: var(--toon-ink);
+  opacity: 0;
+  pointer-events: none;
+}
+.dark .toon__lines {
+  color: #f4eeff;
+}
+.toon__lines svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+.toon[data-go] .toon__lines {
+  opacity: 0.85;
+}
+.toon[data-go] .toon__lines-a {
+  animation: toon-flick 0.16s steps(1) infinite;
+}
+.toon[data-go] .toon__lines-b {
+  animation: toon-flick 0.16s steps(1) -0.08s infinite;
+}
+
+/* sparkles (キラキラ) around the button while it is pointed at */
+.toon__sparkles {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.toon__sparkle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  fill: var(--toon-spark);
+  stroke: var(--toon-ink);
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+  scale: 0;
+}
+.toon__sparkle[data-k="0"] {
+  left: -11px;
+  top: -13px;
+}
+.toon__sparkle[data-k="1"] {
+  left: 44%;
+  top: -19px;
+  width: 15px;
+  height: 15px;
+}
+.toon__sparkle[data-k="2"] {
+  left: -16px;
+  bottom: 14px;
+  width: 16px;
+  height: 16px;
+}
+.toon[data-hover] .toon__sparkle {
+  animation: toon-twinkle 1.2s ease-out infinite;
+}
+.toon[data-hover] .toon__sparkle[data-k="1"] {
+  animation-delay: 0.35s;
+}
+.toon[data-hover] .toon__sparkle[data-k="2"] {
+  animation-delay: 0.7s;
+}
+
+/* anime sound-effect lettering (decorative, aria-hidden) */
+.toon-sfx {
+  position: absolute;
+  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", "Noto Sans CJK JP", "Meiryo", sans-serif;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--sfx-fill, #fff);
+  -webkit-text-stroke: 4px var(--toon-ink);
+  paint-order: stroke fill;
+  letter-spacing: -0.04em;
+  pointer-events: none;
+}
+
+/* ── keyframes ───────────────────────────────────────────────────── */
+@keyframes toon-drop {
+  0% {
+    translate: 0 -44px;
+    scale: 0.97 1.07;
+    animation-timing-function: cubic-bezier(0.55, 0, 0.9, 0.5);
+  }
+  42% {
+    translate: 0 0;
+    scale: 1.07 0.86;
+    animation-timing-function: ease-out;
+  }
+  60% {
+    scale: 0.96 1.05;
+  }
+  76% {
+    scale: 1.02 0.985;
+  }
+  90% {
+    scale: 0.995 1.005;
+  }
+  100% {
+    translate: 0 0;
+    scale: 1;
+  }
+}
+@keyframes toon-jelly {
+  0% {
+    scale: 1;
+  }
+  16% {
+    scale: 1.055 0.9;
+  }
+  32% {
+    scale: 0.955 1.06;
+  }
+  48% {
+    scale: 1.03 0.97;
+  }
+  64% {
+    scale: 0.99 1.015;
+  }
+  82% {
+    scale: 1.004 0.996;
+  }
+  100% {
+    scale: 1;
+  }
+}
+@keyframes toon-boing {
+  0% {
+    scale: 1;
+  }
+  22% {
+    scale: 0.92 1.1;
+  }
+  46% {
+    scale: 1.07 0.93;
+  }
+  70% {
+    scale: 0.985 1.02;
+  }
+  100% {
+    scale: 1;
+  }
+}
+@keyframes toon-flick {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes toon-twinkle {
+  0% {
+    scale: 0;
+    rotate: 0deg;
+  }
+  22% {
+    scale: 1.15;
+    rotate: 30deg;
+  }
+  44% {
+    scale: 0;
+    rotate: 70deg;
+  }
+  100% {
+    scale: 0;
+  }
+}
+
+/* sticker chips (sound switch and the like) */
+.toon-chip {
+  display: inline-flex;
+  height: 2.5rem;
+  align-items: center;
+  gap: 0.45rem;
+  padding-inline: 0.9rem;
+  border: 2.5px solid var(--toon-ink, #1b1530);
+  border-radius: 999px;
+  background: #fffdf7;
+  box-shadow: 0 3px 0 var(--toon-ink, #1b1530);
+  color: #1b1530;
+  font-family: var(--font-toon, var(--font-sans));
+  font-size: 0.95rem;
+  font-weight: 600;
+  outline: none;
+  transition:
+    translate 0.12s,
+    box-shadow 0.12s,
+    background-color 0.2s;
+}
+.toon-chip:hover {
+  background: #fff3c4;
+}
+.toon-chip:active {
+  translate: 0 2px;
+  box-shadow: 0 1px 0 var(--toon-ink, #1b1530);
+}
+.toon-chip[aria-pressed="true"] {
+  background: #ffd447;
+}
+.toon-chip:focus-visible {
+  outline: 3px solid #7c5cff;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toon,
+  .toon *,
+  .toon *::before,
+  .toon *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

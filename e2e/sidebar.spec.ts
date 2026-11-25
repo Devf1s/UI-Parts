@@ -56,7 +56,7 @@ test.describe("sidebar: rail", () => {
     await page.keyboard.press("Tab");
     await expect(nav(page)).toHaveAttribute("data-open", "true");
     const links = nav(page).getByRole("listitem").getByRole("link"); // menu links, not the promo card
-    await expect(links).toHaveCount(6);
+    await expect(links).toHaveCount(7);
     for (let i = 0; i < 8 && !(await links.nth(1).evaluate((el) => el === document.activeElement)); i++) {
       await page.keyboard.press("Tab");
     }
@@ -76,7 +76,7 @@ test.describe("sidebar: rail", () => {
   });
 
   test("collapsed links still have accessible names", async ({ page }) => {
-    for (const name of ["Home", "Projects", "Skills", "Experience", "Blog", "Contact"]) {
+    for (const name of ["Home", "Projects", "Skills", "Experience", "Portfolio", "Blog", "Contact"]) {
       await expect(nav(page).getByRole("link", { name })).toHaveCount(1);
     }
   });

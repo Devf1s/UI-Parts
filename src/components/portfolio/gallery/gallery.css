@@ -1,0 +1,85 @@
+/* Sample 2 · Gallery. Editorial paper in light, gallery wall in dark. */
+:root:has(.pf-gallery) {
+  --bg: #f3f0e9;
+  --fg: #151412;
+  --muted: #5f5b53;
+  --card: #fbfaf6;
+  --card-2: #e7e3da;
+  --border: rgb(21 20 18 / 0.12);
+  --ring: rgb(232 64 42 / 0.6);
+  --gal-bg: var(--bg);
+  --gal-fg: var(--fg);
+  --gal-muted: #5c5850;
+  --gal-line: rgb(21 20 18 / 0.16);
+  --gal-accent: #d63a24;
+  --poster-bg: #fbfaf6;
+  --poster-fg: #151412;
+  --poster-muted: #6b675f;
+  --poster-accent: #e8402a;
+  --poster-shadow: rgb(60 45 20 / 0.55);
+  --venom-color: #151412;
+  --venom-color-2: #f0b8a8;
+}
+:root.dark:has(.pf-gallery) {
+  --bg: #121110;
+  --fg: #efebe3;
+  --muted: #a8a397;
+  --card: #1b1a18;
+  --card-2: #262421;
+  --border: rgb(255 255 255 / 0.1);
+  --ring: rgb(255 120 90 / 0.65);
+  --gal-muted: #aaa598;
+  --gal-line: rgb(239 235 227 / 0.16);
+  --gal-accent: #ff6a4a;
+  --poster-bg: #efebe3;
+  --poster-fg: #151412;
+  --poster-muted: #6b675f;
+  --poster-accent: #e8402a;
+  --poster-shadow: rgb(0 0 0 / 0.9);
+}
+
+.pf-gallery .font-serif {
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 400;
+}
+
+/* WebGL draws the covers: hide the CSS ones under it so a bent plane never shows a second copy */
+.gal-grid[data-gl="on"] .gal-cover-fallback {
+  visibility: hidden;
+}
+
+.gal-cursor {
+  display: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .gal-cursor {
+    display: block;
+    margin: -44px 0 0 -44px;
+    will-change: transform;
+  }
+  .gal-cursor span {
+    display: grid;
+    place-items: center;
+    width: 88px;
+    height: 88px;
+    border-radius: 999px;
+    background: var(--gal-accent);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    transform: scale(0);
+    transition: transform 320ms var(--sb-ease);
+  }
+  .gal-cursor[data-on="true"] span {
+    transform: scale(1);
+  }
+}
+
+/* text lines slide up out of a mask as they enter */
+.gal-line-mask {
+  display: block;
+  overflow: clip;
+  overflow-clip-margin: 0.15em;
+  padding-bottom: 0.06em;
+}

@@ -11,6 +11,7 @@ import {
   Mail,
   Palette,
   PenLine,
+  Sparkles,
 } from "lucide-react";
 import { useId } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -34,13 +35,17 @@ const SECTIONS: SidebarSection[] = [
           { id: "experience", label: "Experience", href: "#experience", icon: <Briefcase /> },
         ],
       },
+      { id: "portfolio", label: "Portfolio", href: "/portfolio", icon: <Sparkles />, chevron: true },
       { id: "blog", label: "Blog", href: "#blog", icon: <PenLine />, chevron: true },
       { id: "contact", label: "Contact", href: "#contact", icon: <Mail />, chevron: true },
     ],
   },
 ];
 
-const IDS = SECTIONS.flatMap((s) => s.items.flatMap((i) => (i.items ? i.items.map((c) => c.id) : [i.id])));
+// scroll-spy only follows in-page sections, not links to other pages
+const IDS = SECTIONS.flatMap((s) => s.items.flatMap((i) => (i.items ? i.items : [i])))
+  .filter((i) => i.href?.startsWith("#"))
+  .map((i) => i.id);
 
 export function Showcase() {
   const [active, setActive] = useScrollSpy(IDS);

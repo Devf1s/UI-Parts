@@ -1,0 +1,110 @@
+/* PopupButton: polaroids tucked behind the button, petals falling in front of it. */
+.toon[data-toon="popup"] {
+  --toon-fill: #ff8fc7;
+}
+.pop-spot {
+  position: absolute;
+  top: 0;
+  right: 16px;
+  width: 122px;
+}
+.pop-card {
+  position: absolute;
+  top: -48px;
+  left: calc(var(--k) * 36px);
+  width: 50px;
+  height: 46px;
+  overflow: visible;
+  transform-origin: 50% 100%;
+  /* tucked away: only the top edges peek over the button */
+  translate: 0 33px;
+  rotate: calc((var(--k) - 1) * 7deg);
+  transition:
+    translate 0.7s var(--toon-bouncy),
+    rotate 0.7s var(--toon-bouncy),
+    opacity 0.3s;
+  transition-delay: calc(var(--k) * 70ms);
+}
+.pop-frame {
+  fill: #fffdf7;
+  stroke: var(--toon-ink);
+  stroke-width: 3;
+}
+.pop-pic {
+  fill: none;
+  stroke: var(--toon-ink);
+  stroke-width: 1.8;
+}
+.pop-caption {
+  fill: none;
+  stroke: #c9c2dc;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+.pop-petal {
+  position: absolute;
+  top: -30px;
+  left: var(--x);
+  width: 17px;
+  height: 15px;
+  opacity: 0;
+  fill: #ffa8d0;
+  stroke: var(--toon-ink);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.toon[data-toon="popup"][data-hover] .pop-card {
+  translate: 0 0;
+  rotate: calc((var(--k) - 1) * 13deg);
+}
+.toon[data-toon="popup"][data-hover] .pop-card[data-k="1"] {
+  translate: 0 -8px;
+}
+.toon[data-toon="popup"][data-hover] .pop-petal {
+  animation: pop-fall 1.9s ease-in-out infinite;
+  animation-delay: var(--d);
+}
+.toon[data-toon="popup"][data-press] .pop-card {
+  translate: 0 16px;
+  transition-duration: 0.1s;
+  transition-delay: 0s;
+  transition-timing-function: ease-out;
+}
+.toon[data-toon="popup"][data-go] .pop-card {
+  translate: calc((var(--k) - 1) * 40px) -120px;
+  rotate: calc((var(--k) - 1) * 40deg);
+  opacity: 0;
+  transition:
+    translate 0.42s cubic-bezier(0.3, 0, 0.8, 0.6),
+    rotate 0.42s ease-in,
+    opacity 0.2s 0.25s;
+  transition-delay: calc(var(--k) * 40ms);
+}
+
+@keyframes pop-fall {
+  0% {
+    translate: 0 0;
+    rotate: 0deg;
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  30% {
+    translate: calc(var(--dx) * 0.6) 34px;
+    rotate: 110deg;
+  }
+  55% {
+    translate: calc(var(--dx) * -0.4) 66px;
+    rotate: 200deg;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    translate: var(--dx) 112px;
+    rotate: 320deg;
+    opacity: 0;
+  }
+}

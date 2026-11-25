@@ -1,0 +1,110 @@
+/* Shared styles of the portfolio samples. Each sample themes the page through `:root:has(.pf-…)`. */
+
+:root {
+  --dock-bg: rgb(255 255 255 / 0.72);
+  --dock-border: rgb(13 13 18 / 0.1);
+  --dock-fg: #0d0d12;
+  --dock-muted: #55556a;
+  --dock-active: #0d0d12;
+  --dock-active-fg: #ffffff;
+  --dock-well: rgb(13 13 18 / 0.06);
+}
+.dark {
+  --dock-bg: rgb(20 20 26 / 0.72);
+  --dock-border: rgb(255 255 255 / 0.12);
+  --dock-fg: #f4f4f7;
+  --dock-muted: #a6a6b5;
+  --dock-active: #f4f4f7;
+  --dock-active-fg: #0d0d12;
+  --dock-well: rgb(255 255 255 / 0.08);
+}
+
+.pf-dock {
+  background: var(--dock-bg);
+  box-shadow:
+    0 0 0 1px var(--dock-border),
+    0 12px 32px -12px rgb(0 0 0 / 0.35);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .pf-dock {
+    background: var(--card);
+    backdrop-filter: none;
+  }
+}
+
+/* WebGL canvases fade in over their CSS fallback once the first frame is drawn */
+.pf-gl {
+  opacity: 0;
+  transition: opacity 600ms ease;
+}
+.pf-gl[data-status="on"] {
+  opacity: 1;
+}
+
+/* Scroll-driven reveal: transform and clip only (never opacity, so contrast is always real). */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .pf-rise {
+      animation: pf-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 70%;
+    }
+    .pf-unmask {
+      animation: pf-unmask linear both;
+      animation-timeline: view();
+      animation-range: entry 10% cover 30%;
+    }
+  }
+}
+@keyframes pf-rise {
+  from {
+    transform: translateY(48px) scale(0.97);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes pf-unmask {
+  from {
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(0.4em);
+  }
+  to {
+    clip-path: inset(0 0 -0.2em 0);
+    transform: none;
+  }
+}
+
+/* Film grain: one static SVG noise tile, composited on its own layer */
+.pf-grain::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  opacity: var(--grain, 0.06);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1.4 -.2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  transform: translateZ(0);
+}
+
+/* Infinite marquee, CSS only; pauses on hover and with reduced motion */
+.pf-marquee {
+  display: flex;
+  width: max-content;
+  animation: pf-marquee var(--marquee-duration, 40s) linear infinite;
+}
+.pf-marquee-host:hover .pf-marquee {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pf-marquee {
+    animation: none;
+  }
+}
+@keyframes pf-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
