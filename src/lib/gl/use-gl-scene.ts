@@ -57,9 +57,36 @@ export type SceneControl<S extends Scene> = {
 /** Test / preview hook: `window.__PF_GL__ = "force"` animates even on a software rasteriser, "off" disables WebGL. */
 const flag = () => (window as unknown as { __PF_GL__?: string }).__PF_GL__;
 
+/**
+ * Calls `fn` once the main thread is idle (hydration done, first paint out), at the latest after
+ * `timeout` ms. Scenes are decoration over a CSS fallback, so they start after the page is usable.
+ */
+function whenIdle(fn: () => void, timeout = 1500) {
+  if (typeof requestIdleCallback === "function") {
+    const id = requestIdleCallback(fn, { timeout });
+    return () => cancelIdleCallback(id);
+  }
+  const id = setTimeout(fn, 250); // Safari has no requestIdleCallback
+  return () => clearTimeout(id);
+}
+
+/** Phones and laptops with few cores or little memory start at a lower resolution. */
+function lowEndDevice() {
+  const nav = navigator as Navigator & { deviceMemory?: number };
+  return (nav.hardwareConcurrency || 8) <= 4 || (nav.deviceMemory ?? 8) <= 4;
+}
+
+// Adaptive resolution: when most frames of a window are slow, the canvas drops a step.
+const SLOW_FRAME_MS = 25; // below ~40 fps
+const WINDOW_FRAMES = 90;
+const RES_STEP = 0.8;
+const MIN_RES = 0.5;
+
 export type DebugHandle = {
   quality: GLQuality;
   frames: number;
+  /** Resolution multiplier the adaptive governor settled on (1 = full). */
+  resolution: number;
   running(): boolean;
   /** Draws the frame at scene time `t` synchronously (deterministic captures). */
   renderAt(t: number): void;
@@ -90,7 +117,9 @@ export function useGLScene<S extends Scene>(
   });
 
   const ctl = useRef({ wake: (ms?: number) => void ms, invalidate: () => {} });
-  const enabled = options.enabled ?? true;
+  const [idle, setIdle] = useState(false);
+  useEffect(() => whenIdle(() => setIdle(true)), []);
+  const enabled = (options.enabled ?? true) && idle;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -135,9 +164,14 @@ export function useGLScene<S extends Scene>(
     let lost = false;
     let compiled = false;
     let width = 0, height = 0;
+    let resolution = lowEndDevice() ? 0.75 : 1;
+    let slow = 0, sampled = 0;
     const debug: DebugHandle = {
       quality,
       frames: 0,
+      get resolution() {
+        return resolution;
+      },
       running: () => raf !== 0,
       renderAt(at) {
         t = at;
@@ -199,6 +233,7 @@ export function useGLScene<S extends Scene>(
         if (!lost) raf = requestAnimationFrame(tick); // still compiling: check again next frame
         return;
       }
+      if (last) govern(now - last);
       const dt = last ? Math.min((now - last) / 1000, 1 / 20) : 1 / 60;
       last = now;
       const animate = motion && (ambient() || now < wakeUntil);
@@ -206,6 +241,18 @@ export function useGLScene<S extends Scene>(
       const busy = draw(animate ? dt : 0);
       if (animate || (busy && motion)) raf = requestAnimationFrame(tick);
       else last = 0;
+    }
+    /** Drops the resolution a step when most frames of the last window missed ~40 fps. */
+    function govern(ms: number) {
+      if (resolution <= MIN_RES) return;
+      sampled++;
+      if (ms > SLOW_FRAME_MS) slow++;
+      if (sampled < WINDOW_FRAMES) return;
+      if (slow > WINDOW_FRAMES / 2) {
+        resolution = Math.max(MIN_RES, resolution * RES_STEP);
+        resize();
+      }
+      slow = sampled = 0;
     }
     function request() {
       if (!raf && !lost) raf = requestAnimationFrame(tick);
@@ -225,7 +272,7 @@ export function useGLScene<S extends Scene>(
     const resize = () => {
       const r = canvas.getBoundingClientRect();
       const o = optsRef.current;
-      const scale = Math.min(window.devicePixelRatio || 1, o.maxDpr ?? 2) * (o.scale ?? 1);
+      const scale = Math.min(window.devicePixelRatio || 1, o.maxDpr ?? 2) * (o.scale ?? 1) * resolution;
       width = r.width;
       height = r.height;
       const w = Math.max(1, Math.round(width * scale)), h = Math.max(1, Math.round(height * scale));
