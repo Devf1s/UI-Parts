@@ -139,3 +139,14 @@ body {
     animation-duration: 1ms !important;
   }
 }
+
+/* the 404 cat peeking over the lettering */
+@keyframes peek {
+  0%,
+  100% {
+    translate: 0 4px;
+  }
+  50% {
+    translate: 0 -2px;
+  }
+}
