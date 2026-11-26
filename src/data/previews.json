@@ -78,8 +78,8 @@
     },
     "hoobank": {
       "url": "https://devf1s.github.io/hoobank/",
-      "src": "/previews/hoobank.21e1fcad.webp",
-      "thumb": "/previews/hoobank-sm.c279bb81.webp",
+      "src": "/previews/hoobank.4d5ddf70.webp",
+      "thumb": "/previews/hoobank-sm.77fbb2cf.webp",
       "width": 720,
       "height": 450,
       "color": "#080818"
@@ -166,19 +166,14 @@
     },
     "wishbone": {
       "url": "https://devf1s.github.io/wishbone/",
-      "src": "/previews/wishbone.cf749f54.webp",
+      "src": "/previews/wishbone.66bb17ca.webp",
       "thumb": "/previews/wishbone-sm.33840038.webp",
       "width": 720,
       "height": 450,
       "color": "#e8e8e8"
-    },
-    "youtube-clone": {
-      "url": "https://devf1s.github.io/youtube-clone/",
-      "src": "/previews/youtube-clone.3b69e600.webp",
-      "thumb": "/previews/youtube-clone-sm.a9a7961e.webp",
-      "width": 720,
-      "height": 450,
-      "color": "#080808"
     }
+  },
+  "blank": {
+    "youtube-clone": "https://devf1s.github.io/youtube-clone/"
   }
 }
