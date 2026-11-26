@@ -3,5 +3,182 @@
     1280,
     800
   ],
-  "previews": {}
+  "previews": {
+    "aperture": {
+      "url": "https://devf1s.github.io/aperture/",
+      "src": "/previews/aperture.65a57059.webp",
+      "thumb": "/previews/aperture-sm.178b6357.webp",
+      "width": 720,
+      "height": 450,
+      "color": "#080808"
+    },
+    "bine-games": {
+      "url": "https://devf1s.github.io/bine-games/",
+      "src": "/previews/bine-games.a737fddb.webp",
+      "thumb": "/previews/bine-games-sm.6c6cf7fa.webp",
+      "width": 720,
+      "height": 450,
+      "color": "#f8f8f8"
+    },
+    "boosted-USA": {
+      "url": "https://devf1s.github.io/boosted-USA/",
+      "src": "/previews/boosted-usa.27094484.webp",
+      "thumb": "/previews/boosted-usa-sm.fb8f7bd9.webp",
+      "width": 720,
+      "height": 450,
+      "color": "#d8d8e8"
+    },
+    "createx": {
+      "url": "https://devf1s.github.io/createx/",
+      "src": "/previews/createx.584068c1.webp",
+      "thumb": "/previews/createx-sm.b8fa60db.webp",
+      "width": 720,
+      "height": 450,
+      "color": "#f8d8d8"
+    },
+    "Devf1s": {
+      "url": "https://roman-sivachenko.netlify.app/",
+      "src": "/previews/portfolio.4cba37ef.webp",
+      "thumb": "/previews/portfolio-sm.d1ade267.webp",
+      "width": 720,
+      "height": 450,
+      "color": "#f8f8f8"
+    },
+    "ecobazar": {
+      "url": "https://ecobazar-react-app.netlify.app/",
+      "src": "/previews/ecobazar.c03b7754.webp",
+      "thumb": "/previews/ecobazar-sm.7266fe53.webp",
+      "width": 720,
+      "height": 450,
+      "color": "#f8f8f8"
+    },
+    "food": {
+      "url": "https://devf1s.github.io/food/",
+      "src": "/previews/food.d1ad8e39.webp",
+      "thumb": "/previews/food-sm.24b3fb84.webp",
+      "width": 720,
+      "height": 450,
+      "color": "#f8f8f8"
+    },
+    "futsal": {
+      "url": "https://futsal-one.vercel.app",
+      "src": "/previews/futsal.40f8d4ff.webp",
+      "thumb": "/previews/futsal-sm.fc0a87d4.webp",
+      "width": 720,
+      "height": 450,
+      "color": "#080808"
+    },
+    "guesthouse": {
+      "url": "https://devf1s.github.io/guesthouse/",
+      "src": "/previews/guesthouse.5b55a7ed.webp",
+      "thumb": "/previews/guesthouse-sm.9cf6ab60.webp",
+      "width": 720,
+      "height": 450,
+      "color": "#584838"
+    },
+    "hoobank": {
+      "url": "https://devf1s.github.io/hoobank/",
+      "src": "/previews/hoobank.21e1fcad.webp",
+      "thumb": "/previews/hoobank-sm.c279bb81.webp",
+      "width": 720,
+      "height": 450,
+      "color": "#080818"
+    },
+    "infinizai": {
+      "url": "https://devf1s.github.io/infinizai/",
+      "src": "/previews/infinizai.7ae38cfc.webp",
+      "thumb": "/previews/infinizai-sm.13ca9ca6.webp",
+      "width": 720,
+      "height": 450,
+      "color": "#181818"
+    },
+    "mariela": {
+      "url": "https://devf1s.github.io/mariela/",
+      "src": "/previews/mariela.d63b9f30.webp",
+      "thumb": "/previews/mariela-sm.9db32160.webp",
+      "width": 720,
+      "height": 450,
+      "color": "#f8f8f8"
+    },
+    "meta": {
+      "url": "https://devf1s.github.io/meta/",
+      "src": "/previews/meta.e8a52994.webp",
+      "thumb": "/previews/meta-sm.d0a38a15.webp",
+      "width": 720,
+      "height": 450,
+      "color": "#180828"
+    },
+    "NFT-Crypter": {
+      "url": "https://devf1s.github.io/NFT-Crypter/",
+      "src": "/previews/nft-crypter.05d13969.webp",
+      "thumb": "/previews/nft-crypter-sm.cc338b74.webp",
+      "width": 720,
+      "height": 450,
+      "color": "#f8f8f8"
+    },
+    "NFT-Peeps": {
+      "url": "https://devf1s.github.io/NFT-Peeps/",
+      "src": "/previews/nft-peeps.0cde15a7.webp",
+      "thumb": "/previews/nft-peeps-sm.46a8a329.webp",
+      "width": 720,
+      "height": 450,
+      "color": "#f8f8f8"
+    },
+    "portfolio": {
+      "url": "https://roman-sivachenko.netlify.app/",
+      "src": "/previews/portfolio.4cba37ef.webp",
+      "thumb": "/previews/portfolio-sm.d1ade267.webp",
+      "width": 720,
+      "height": 450,
+      "color": "#f8f8f8"
+    },
+    "quizzical": {
+      "url": "https://devf1s.github.io/quizzical/",
+      "src": "/previews/quizzical.b1076b47.webp",
+      "thumb": "/previews/quizzical-sm.9d3cc6a2.webp",
+      "width": 720,
+      "height": 450,
+      "color": "#f8f8f8"
+    },
+    "tenzies": {
+      "url": "https://devf1s.github.io/tenzies/",
+      "src": "/previews/tenzies.044910d4.webp",
+      "thumb": "/previews/tenzies-sm.1aac62c6.webp",
+      "width": 720,
+      "height": 450,
+      "color": "#f8d8c8"
+    },
+    "tg-web-app-react": {
+      "url": "https://tg-webapp-react.netlify.app/",
+      "src": "/previews/tg-web-app-react.c99ae927.webp",
+      "thumb": "/previews/tg-web-app-react-sm.95b97035.webp",
+      "width": 720,
+      "height": 450,
+      "color": "#f8f8f8"
+    },
+    "UI-Parts": {
+      "url": "https://ui-parts.vercel.app",
+      "src": "/previews/ui-parts.4b3f2d5a.webp",
+      "thumb": "/previews/ui-parts-sm.76da62a9.webp",
+      "width": 720,
+      "height": 450,
+      "color": "#f8f8e8"
+    },
+    "wishbone": {
+      "url": "https://devf1s.github.io/wishbone/",
+      "src": "/previews/wishbone.cf749f54.webp",
+      "thumb": "/previews/wishbone-sm.33840038.webp",
+      "width": 720,
+      "height": 450,
+      "color": "#e8e8e8"
+    },
+    "youtube-clone": {
+      "url": "https://devf1s.github.io/youtube-clone/",
+      "src": "/previews/youtube-clone.3b69e600.webp",
+      "thumb": "/previews/youtube-clone-sm.a9a7961e.webp",
+      "width": 720,
+      "height": 450,
+      "color": "#080808"
+    }
+  }
 }
