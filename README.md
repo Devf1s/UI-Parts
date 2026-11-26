@@ -87,8 +87,9 @@ order on top. Only public repositories are ever fetched or listed.
 `public/previews` (720 and 360 px wide, names carry a content hash, served with a one-year
 `immutable` cache) plus `src/data/previews.json` (files, size, dominant colour). `--only a,b`
 refreshes some, `--from <dir>` takes `<repo>.png` files instead of capturing, `--url repo=…` points
-a repository at another address. A unit test fails when a selected project with a live site has
-no screenshot. The Symbiote card shows the screenshot in a small browser window with the address,
+a repository at another address. The "Site screenshots" workflow runs it in GitHub Actions
+whenever a branch changes the repository list or the script (or by hand) and commits the result
+to the branch. A unit test fails when a selected project with a live site has no screenshot. The Symbiote card shows the screenshot in a small browser window with the address,
 a Live / Code badge and the project's details; it sits beside the row's text, never over it, and a
 project with no live site gets a card drawn from its repository, title, blurb and stack. Touch
 screens get the same window inside each row, lazy-loaded with `srcset`.
