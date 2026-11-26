@@ -17,6 +17,7 @@
   --ink-hi: #ffffff;
   --ink-sheen: 0.55;
   --venom-color-2: #c9c1ff;
+  --sym-live: #15803d;
 }
 :root.dark:has(.pf-symbiote) {
   --bg: #08080b;
@@ -33,6 +34,7 @@
   --ink-rim: #9b87ff;
   --ink-hi: #e9e4ff;
   --ink-sheen: 0.9;
+  --sym-live: #4ade80;
 }
 
 /* stand-in for the ink before / without WebGL: same composition, static */
@@ -73,6 +75,11 @@
 .sym-row {
   transition: opacity 300ms ease;
 }
+@media (min-width: 640px) {
+  .sym-row__grid {
+    align-items: center;
+  }
+}
 @media (hover: hover) and (pointer: fine) {
   .sym-row--dim {
     opacity: 0.38;
@@ -84,5 +91,175 @@
 @media (hover: none), (pointer: coarse) {
   .sym-thumb {
     display: block;
+  }
+  /* rows grow tall around the screenshot: details line up with the title, not its middle */
+  .sym-row__grid {
+    align-items: start;
+  }
+}
+
+/* the floating preview: a small browser window with the project in it; its picture is 16:10 */
+.sym-preview {
+  width: 336px;
+  will-change: transform;
+}
+/* small laptops: narrow enough to sit beside the widest row's text */
+@media (max-width: 1199px) {
+  .sym-preview {
+    width: 300px;
+  }
+}
+.sym-card {
+  overflow: hidden;
+  border: 1px solid var(--sym-line);
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--sym-fg);
+  box-shadow:
+    0 28px 60px -24px rgb(0 0 0 / 0.55),
+    0 10px 24px -14px rgb(0 0 0 / 0.35);
+  opacity: 0;
+  scale: 0.94;
+  transform-origin: 20% 50%;
+  transition:
+    opacity 180ms ease,
+    scale 420ms var(--sb-ease);
+}
+.sym-preview[data-on] .sym-card {
+  opacity: 1;
+  scale: 1;
+}
+.sym-card__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 30px;
+  padding-inline: 10px;
+  border-bottom: 1px solid var(--sym-line);
+  background: var(--card-2);
+}
+.sym-card__dots {
+  display: inline-flex;
+  flex: none;
+  gap: 5px;
+}
+.sym-card__dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--sym-fg) 22%, transparent);
+}
+.sym-card__url {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  height: 19px;
+  align-items: center;
+  gap: 5px;
+  padding-inline: 7px;
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--sym-muted);
+  font: 500 10.5px/1 var(--font-geist-mono), ui-monospace, monospace;
+}
+.sym-card__url svg {
+  width: 10px;
+  height: 10px;
+  flex: none;
+}
+.sym-card__state {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  color: var(--sym-muted);
+  font: 600 9.5px/1 var(--font-geist-mono), ui-monospace, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.sym-card__state::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.55;
+}
+.sym-card__state[data-live] {
+  color: var(--sym-live);
+}
+.sym-card__state[data-live]::before {
+  opacity: 1;
+  animation: sym-live 1.8s ease-in-out infinite;
+}
+.sym-card__shot {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+}
+.sym-card__shot > img,
+.sym-card__shot > canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.sym-card__shot > img {
+  object-fit: cover;
+  object-position: top;
+}
+.sym-card__info {
+  padding: 10px 12px 11px;
+  border-top: 1px solid var(--sym-line);
+}
+.sym-card__title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.sym-card__year,
+.sym-card__meta {
+  color: var(--sym-muted);
+  font: 500 11px/1.4 var(--font-geist-mono), ui-monospace, monospace;
+}
+.sym-card__meta {
+  display: flex;
+  gap: 12px;
+  margin-top: 3px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.sym-card__meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.sym-card__meta i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.sym-card__meta svg {
+  width: 11px;
+  height: 11px;
+}
+/* a new project's details slide in */
+.sym-swap {
+  animation: sym-swap 320ms var(--sb-ease) both;
+}
+@keyframes sym-swap {
+  from {
+    opacity: 0;
+    translate: 0 5px;
+  }
+}
+@keyframes sym-live {
+  50% {
+    opacity: 0.35;
   }
 }

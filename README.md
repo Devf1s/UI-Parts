@@ -74,13 +74,24 @@ switches between them and the theme, and its home button goes back to the index.
 
 | Design | Idea | WebGL |
 | --- | --- | --- |
-| [`/portfolio`](https://ui-parts.vercel.app/portfolio) · Symbiote | Dark, inky landing; an index of projects with a floating preview, an archive table. | Full-screen metaball ink that reaches for the cursor; the hover preview cross-fades covers and splits RGB with cursor speed. |
+| [`/portfolio`](https://ui-parts.vercel.app/portfolio) · Symbiote | Dark, inky landing; an index of projects with a floating preview of each live site, an archive table. | Full-screen metaball ink that reaches for the cursor; the hover preview dissolves one site's screenshot into the next and splits RGB with cursor speed. |
 | [`/portfolio/gallery`](https://ui-parts.vercel.app/portfolio/gallery) · Gallery | Editorial grid with category filters. | A poster hanging as cloth (drawn with the page's fonts), cover planes synced to the DOM cards that bend with scroll velocity and ripple on hover. |
 | [`/portfolio/orbit`](https://ui-parts.vercel.app/portfolio/orbit) · Orbit | Every repository as a star, with a bento of stats and search. | A point-sprite galaxy: newest repos near the core, oldest at the rim, coloured by language; drag to spin, pick a star to open its card. |
 
 **Data.** `npm run sync:github` fetches the public, non-fork, non-archived repositories into
 `src/data/github-repos.json`; `src/data/portfolio.ts` adds titles, categories and the featured
 order on top. Only public repositories are ever fetched or listed.
+
+**Site screenshots.** `npm run previews` opens every repository's homepage in Chromium at
+1280×800 (reduced motion, no scrollbars), lets it settle and writes two WebP sizes to
+`public/previews` (720 and 360 px wide, names carry a content hash, served with a one-year
+`immutable` cache) plus `src/data/previews.json` (files, size, dominant colour). `--only a,b`
+refreshes some, `--from <dir>` takes `<repo>.png` files instead of capturing, `--url repo=…` points
+a repository at another address. A unit test fails when a selected project with a live site has
+no screenshot. The Symbiote card shows the screenshot in a small browser window with the address,
+a Live / Code badge and the project's details; it sits beside the row's text, never over it, and a
+project with no live site gets a card drawn from its repository, title, blurb and stack. Touch
+screens get the same window inside each row, lazy-loaded with `srcset`.
 
 **WebGL kit** (`src/lib/gl`): `useGLScene` creates a WebGL2 scene for a canvas, sizes it with the
 DPR capped, runs one loop only while the scene is on screen and something moves (ambient motion or
@@ -89,7 +100,9 @@ DPR capped, runs one loop only while the scene is on screen and something moves 
 once they are ready, so creating a scene never stalls the page, and a scene can wait to be created
 until it is first needed (`enabled`), as the Symbiote hover preview does. Without WebGL2, or after a lost context, each sample shows a CSS or 2D canvas version of
 the same art. Software rasterisers (CI, VMs) draw still frames, redrawn on resize, theme change or
-input, and so does `prefers-reduced-motion`.
+input, and so does `prefers-reduced-motion`. Canvases are sized by their layout box (not their
+transformed one), and cheap scenes whose detail matters opt out of the resolution governor
+(`adaptive: false`).
 
 **Share.** The venom button opens the native share sheet where there is one and copies the link
 otherwise, with a polite status message.
@@ -250,6 +263,12 @@ CSS variables: `--venom-color` (body and goo), `--venom-color-2` (rim lights and
 - **Portfolio scenes start when the page is idle** (`requestIdleCallback`), after hydration, over
   their CSS artwork; a frame-time governor lowers a canvas's resolution when most frames miss
   ~40 fps, and devices with ≤ 4 cores or ≤ 4 GB start at 75 %.
+- **The Symbiote hover preview is texture lookups only** (at most six per pixel: a dissolve between
+  two screenshots, plus the RGB split while moving), down from up to six evaluations of a
+  procedural cover per pixel: about 1.7 ms a frame on a software rasteriser instead of 25 ms, and a
+  steady 60 fps while sweeping the list. Its scene is created and the screenshots are fetched and
+  decoded off the main thread (`createImageBitmap`) when the list comes near, on devices that can
+  hover, so the first hover is instant; touch screens never load it.
 
 ## Responsive & accessibility
 
