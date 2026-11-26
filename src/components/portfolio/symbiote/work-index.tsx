@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, GitBranch, Lock, Star } from "lucide-react";
+import { ArrowUpRight, GitBranch, Globe, Lock, Star } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CATEGORIES, hostOf, languageColor, PROFILE, siteAddress, type Project } from "@/data/portfolio";
 import { hexToRgb } from "@/lib/gl/gl";
@@ -349,7 +349,7 @@ function Thumb({ project: p }: { project: Project }) {
   );
 }
 
-/** Stand-in picture for a project with no live site: its repository, title and stack. */
+/** Stand-in picture for a project with no screenshot: its repository, title and where it lives. */
 function SourcePoster({ project: p }: { project: Project }) {
   return (
     <div className="absolute inset-0 overflow-hidden text-white" style={coverStyle(p)}>
@@ -361,7 +361,8 @@ function SourcePoster({ project: p }: { project: Project }) {
         <div>
           <p className="text-2xl font-semibold leading-none tracking-tight">{p.title}</p>
           <p className="mt-2 flex items-center gap-1.5 font-mono text-[11px] opacity-85">
-            <GitBranch aria-hidden className="size-3" /> source on GitHub
+            {p.demo ? <Globe aria-hidden className="size-3" /> : <GitBranch aria-hidden className="size-3" />}
+            {p.demo ? `live at ${hostOf(p.demo)}` : "source on GitHub"}
           </p>
         </div>
       </div>

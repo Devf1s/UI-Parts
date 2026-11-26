@@ -1,10 +1,10 @@
-import { CATEGORIES, languageColor, PROFILE, type Project } from "@/data/portfolio";
+import { CATEGORIES, hostOf, languageColor, PROFILE, type Project } from "@/data/portfolio";
 
 /**
  * Pictures for the work index preview, as ImageBitmaps ready for a texture upload. Screenshots are
- * fetched and decoded off the main thread; a project with no live site gets a card drawn from its
- * real data (repository, title, blurb, stack). Both are cached for the page's lifetime, so a
- * re-created GL scene re-uploads without another request.
+ * fetched and decoded off the main thread; a project with no screenshot (no live site, or a site
+ * that renders blank) gets a card drawn from its real data (repository, title, blurb, stack). Both
+ * are cached for the page's lifetime, so a re-created GL scene re-uploads without another request.
  */
 const cache = new Map<string, Promise<ImageBitmap>>();
 
@@ -103,7 +103,7 @@ function drawSourceCard(p: Project, fonts: Fonts) {
     x += w + 10;
   }
 
-  // language, type and where the code lives, above the chips
+  // language, type and where it lives, above the chips
   const metaY = chipY - 44;
   ctx.beginPath();
   ctx.arc(pad + 7, metaY + 11, 7, 0, Math.PI * 2);
@@ -111,7 +111,8 @@ function drawSourceCard(p: Project, fonts: Fonts) {
   ctx.fill();
   ctx.font = `500 19px ${fonts.mono}`;
   ctx.fillStyle = c0;
-  ctx.fillText(`${p.language} · ${CATEGORIES[p.category].label} · source on GitHub`, pad + 24, metaY + 1);
+  const where = p.demo ? `live at ${hostOf(p.demo)}` : "source on GitHub";
+  ctx.fillText(`${p.language} · ${CATEGORIES[p.category].label} · ${where}`, pad + 24, metaY + 1, CW - pad * 2 - 24);
   return canvas;
 }
 
