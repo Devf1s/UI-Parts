@@ -1,24 +1,29 @@
 import type { CSSProperties } from "react";
-import type { Metadata } from "next";
-import { Fredoka } from "next/font/google";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BoxerButton, NekoButton, PopupButton, RocketButton, SoundToggle } from "@/components/ui/toon-button";
+import { fredoka } from "@/fonts/fredoka";
+import { PAGES, pageMetadata, type PageKey } from "@/site/pages";
 import "./home.css";
 
-const toon = Fredoka({ subsets: ["latin"], variable: "--font-toon", display: "swap" });
+export const metadata = pageMetadata("home", { title: { absolute: PAGES.home.title } });
 
-export const metadata: Metadata = {
-  title: { absolute: "Devf1s · UI parts" },
-  description: "Every page of the site: the portfolio, two alternative portfolio designs and the UI parts lab, each behind a cartoon button with a character on it.",
-};
+/** The pages behind the buttons, in order. A new page gets an entry in the registry and a door here. */
+const DOORS: { page: Exclude<PageKey, "home">; Button: typeof NekoButton; hint: string }[] = [
+  { page: "portfolio", Button: NekoButton, hint: "neko · watches your cursor, ducks when you press" },
+  { page: "gallery", Button: PopupButton, hint: "pop-up · the pictures jump out, petals fall" },
+  { page: "orbit", Button: RocketButton, hint: "rocket · it rumbles, smokes, then lifts off" },
+  { page: "lab", Button: BoxerButton, hint: "jack-in-the-box · mind the glove" },
+];
+const COUNT = ["One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"][DOORS.length - 1] ?? String(DOORS.length);
 
 const TITLE = "Where to?";
 
 /** Every page of the site, in the middle of the screen, each behind a cartoon button. */
 export default function Home() {
   return (
-    <div className={`home ${toon.variable} relative flex min-h-dvh flex-col`}>
-      <header className="flex items-center justify-between gap-3 px-4 py-4 sm:px-8">
+    <div className={`home ${fredoka.variable} relative flex min-h-dvh flex-col`}>
+      {/* above main: the title's letters drop in from above it and must never cover the switches */}
+      <header className="z-10 flex items-center justify-between gap-3 px-4 py-4 sm:px-8">
         <p className="home-logo">devf1s</p>
         <div className="flex items-center gap-2">
           <SoundToggle />
@@ -38,42 +43,22 @@ export default function Home() {
               ))}
             </span>
           </h1>
-          <p className="home-lede">Four pages, four buttons, and somebody lives on each of them. Go on, say hi.</p>
+          <p className="home-lede">
+            {COUNT} pages, {COUNT.toLowerCase()} buttons, and somebody lives on each of them. Go on, say hi.
+          </p>
 
           <nav aria-label="Pages" className="mt-14">
             <ol className="grid gap-11">
-              <li>
-                <NekoButton href="/portfolio" meta="/portfolio" index={0} aria-describedby="hint-portfolio">
-                  Portfolio
-                </NekoButton>
-                <p id="hint-portfolio" className="home-hint">
-                  neko · watches your cursor, ducks when you press
-                </p>
-              </li>
-              <li>
-                <PopupButton href="/portfolio/gallery" meta="/portfolio/gallery" index={1} aria-describedby="hint-gallery">
-                  Gallery
-                </PopupButton>
-                <p id="hint-gallery" className="home-hint">
-                  pop-up · the pictures jump out, petals fall
-                </p>
-              </li>
-              <li>
-                <RocketButton href="/portfolio/orbit" meta="/portfolio/orbit" index={2} aria-describedby="hint-orbit">
-                  Orbit
-                </RocketButton>
-                <p id="hint-orbit" className="home-hint">
-                  rocket · it rumbles, smokes, then lifts off
-                </p>
-              </li>
-              <li>
-                <BoxerButton href="/test" meta="/test" index={3} aria-describedby="hint-test">
-                  UI parts
-                </BoxerButton>
-                <p id="hint-test" className="home-hint">
-                  jack-in-the-box · mind the glove
-                </p>
-              </li>
+              {DOORS.map(({ page, Button, hint }, i) => (
+                <li key={page}>
+                  <Button href={PAGES[page].href} meta={PAGES[page].href} index={i} aria-describedby={`hint-${page}`}>
+                    {PAGES[page].label}
+                  </Button>
+                  <p id={`hint-${page}`} className="home-hint">
+                    {hint}
+                  </p>
+                </li>
+              ))}
             </ol>
           </nav>
         </div>

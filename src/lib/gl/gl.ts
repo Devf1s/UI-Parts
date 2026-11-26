@@ -90,6 +90,15 @@ export function programsReady(gl: WebGL2RenderingContext) {
   return true;
 }
 
+/**
+ * Forgets the programs of `gl` that `programsReady` has not checked yet. Call it when the scene that
+ * created them is disposed: the canvas keeps its context, and a scene created on it later (React
+ * re-running an effect, a route shown again) must not wait for programs that were deleted.
+ */
+export function forgetPrograms(gl: WebGL2RenderingContext) {
+  pending.delete(gl);
+}
+
 /** A triangle that covers the viewport, drawn with `drawArrays(TRIANGLES, 0, 3)` and no buffers. */
 export const FULLSCREEN_VS = /* glsl */ `#version 300 es
 out vec2 vUv;

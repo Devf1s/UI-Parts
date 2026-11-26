@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { Action, type ActionProps } from "../action";
 import { focusLines } from "./toon-math";
@@ -76,7 +76,19 @@ export function ToonButton(props: ToonButtonProps) {
   const [press, setPress] = useState(false);
   const [go, setGo] = useState(false);
   const timers = useRef<number[]>([]);
-  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  // Leaving the page hides it (Activity) instead of unmounting it, and its effects are cleaned up:
+  // drop the timers and the transient states, so that going back shows the button at rest rather
+  // than frozen mid-gag.
+  useLayoutEffect(
+    () => () => {
+      timers.current.forEach(clearTimeout);
+      timers.current = [];
+      setHover(false);
+      setPress(false);
+      setGo(false);
+    },
+    [],
+  );
   const later = (fn: () => void, ms: number) => timers.current.push(window.setTimeout(fn, ms));
 
   const enter = () => {

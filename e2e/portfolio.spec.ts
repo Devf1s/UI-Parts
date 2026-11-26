@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { byCategory, PROJECTS } from "../src/data/portfolio";
+import { byCategory, FEATURED, hostOf, PROJECTS, siteAddress } from "../src/data/portfolio";
 import { horizontalOverflow } from "./helpers";
 
 /**
@@ -136,31 +136,93 @@ for (const s of SAMPLES) {
 }
 
 test.describe("Symbiote", () => {
-  test("hovering the index shows a WebGL preview that follows the cursor", async ({ page }, info) => {
+  /** Right edge of a row's visible text (title, blurb, stack), in viewport px. */
+  const textRight = (row: ReturnType<Page["locator"]>) =>
+    row.locator("[data-text]").evaluateAll((els) =>
+      Math.max(
+        ...els.map((el) => {
+          const r = document.createRange();
+          r.selectNodeContents(el);
+          return r.getBoundingClientRect().right;
+        }),
+      ),
+    );
+
+  test("hovering a row shows its site in a card beside the text, never over it", async ({ page }, info) => {
     test.skip(info.project.name !== "desktop", "mouse only");
-    await load(page, "/portfolio");
+    const { expectNoErrors } = await load(page, "/portfolio");
     const preview = page.locator(".sym-preview");
     const rows = page.locator("#work li.sym-row");
-    await rows.first().scrollIntoViewIfNeeded();
-    const box = (await rows.nth(1).boundingBox())!;
-    await page.mouse.move(box.x + 300, box.y + box.height / 2, { steps: 4 });
-    await expect(preview).toHaveClass(/opacity-100/);
+    await rows.first().evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
+    // from outside the list straight onto the first row (a synthetic enter used to miss this one)
+    const box = (await rows.first().boundingBox())!;
+    await page.mouse.move(box.x + 150, box.y + box.height / 2, { steps: 4 });
+    await expect(preview).toHaveAttribute("data-on", "true");
     await expect.poll(() => status(page, "preview-canvas")).toBe("on");
+    await expect(preview.locator(".sym-card__url")).toHaveText(siteAddress(FEATURED[0]));
+    await expect(preview.locator(".sym-card__title")).toContainText(FEATURED[0].title);
+    // the screenshot is fetched for the texture
+    await expect
+      .poll(() => page.evaluate(() => performance.getEntriesByType("resource").some((e) => e.name.includes("/previews/"))))
+      .toBe(true);
+    const edge = await textRight(rows.first());
+    await expect.poll(async () => (await preview.boundingBox())!.x).toBeGreaterThanOrEqual(edge);
+
+    // past the text it follows the cursor
     const a = (await preview.boundingBox())!;
-    await page.mouse.move(box.x + 600, box.y + box.height / 2, { steps: 6 });
-    await expect.poll(async () => (await preview.boundingBox())!.x).toBeGreaterThan(a.x + 100);
-    // other rows dim while one is hovered
+    await page.mouse.move(box.x + box.width - 420, box.y + box.height / 2, { steps: 6 });
+    await expect.poll(async () => (await preview.boundingBox())!.x).toBeGreaterThan(a.x + 50);
+
+    // next row: its project, the others dim
+    const second = (await rows.nth(1).boundingBox())!;
+    await page.mouse.move(box.x + 150, second.y + second.height / 2, { steps: 4 });
+    await expect(preview.locator(".sym-card__title")).toContainText(FEATURED[1].title);
     await expect(rows.nth(2)).toHaveClass(/sym-row--dim/);
+    await expect.poll(async () => (await preview.boundingBox())!.x).toBeGreaterThanOrEqual(await textRight(rows.nth(1)));
     await page.mouse.move(5, 5);
-    await expect(preview).toHaveClass(/opacity-0/);
+    await expect(preview).not.toHaveAttribute("data-on");
+    expectNoErrors();
   });
 
-  test("touch screens get thumbnails instead of the floating preview", async ({ page }, info) => {
+  test("keyboard focus parks the card beside the focused row", async ({ page }, info) => {
+    test.skip(info.project.name !== "desktop", "the card is for devices that can hover");
+    await load(page, "/portfolio");
+    const row = page.locator("#work li.sym-row").nth(2);
+    await row.getByRole("link", { name: new RegExp(FEATURED[2].title) }).first().focus();
+    const preview = page.locator(".sym-preview");
+    await expect(preview).toHaveAttribute("data-on", "true");
+    await expect(preview.locator(".sym-card__url")).toHaveText(siteAddress(FEATURED[2]));
+    await expect.poll(async () => (await preview.boundingBox())!.x).toBeGreaterThanOrEqual(await textRight(row));
+    await page.locator("body").evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await expect(preview).not.toHaveAttribute("data-on");
+  });
+
+  test("touch screens get each site's screenshot in its row instead", async ({ page }, info) => {
     test.skip(info.project.name === "desktop", "touch only");
     await load(page, "/portfolio");
-    await page.locator("#work").scrollIntoViewIfNeeded();
-    await expect(page.locator(".sym-thumb").first()).toBeVisible();
     await expect(page.locator(".sym-preview")).toBeHidden();
+    const rows = page.locator("#work li.sym-row");
+    for (const [i, p] of FEATURED.entries()) {
+      const thumb = rows.nth(i).locator(".sym-thumb");
+      await thumb.scrollIntoViewIfNeeded();
+      await expect(thumb).toBeVisible();
+      await expect(thumb).toContainText(siteAddress(p));
+      if (p.preview) {
+        const img = thumb.locator("img");
+        await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
+        expect(await img.evaluate((el: HTMLImageElement) => el.currentSrc)).toMatch(/\/previews\/.+\.webp$/);
+      } else await expect(thumb).toContainText(p.demo ? `live at ${hostOf(p.demo)}` : "source on GitHub");
+    }
+  });
+
+  test("screenshots are cached for good (their names change with their content)", async ({ request }) => {
+    const p = FEATURED.find((x) => x.preview)!;
+    for (const file of [p.preview!.src, p.preview!.thumb]) {
+      const res = await request.get(file);
+      expect(res.status()).toBe(200);
+      expect(res.headers()["content-type"]).toBe("image/webp");
+      expect(res.headers()["cache-control"]).toBe("public, max-age=31536000, immutable");
+    }
   });
 
   test("the venom button takes you to the work", async ({ page }) => {

@@ -1,17 +1,10 @@
-import type { Metadata } from "next";
-import { Instrument_Serif } from "next/font/google";
 import { ClothPoster } from "@/components/portfolio/gallery/cloth-poster";
 import { ProjectGrid } from "@/components/portfolio/gallery/project-grid";
 import { SharePanel } from "@/components/portfolio/share-panel";
 import { byCategory, CATEGORIES, languageStats, monthYear, PROFILE, PROJECTS, stackStats, yearStats, type Category } from "@/data/portfolio";
-import "@/components/portfolio/gallery/gallery.css";
+import { pageMetadata } from "@/site/pages";
 
-const serif = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--font-serif", display: "swap" });
-
-export const metadata: Metadata = {
-  title: "Gallery",
-  description: "Portfolio sample: an editorial gallery of Devf1s’ GitHub projects with a WebGL cloth poster and covers that bend with the scroll.",
-};
+export const metadata = pageMetadata("gallery");
 
 export default function GalleryPage() {
   const years = yearStats();
@@ -23,7 +16,7 @@ export default function GalleryPage() {
     .filter((k) => k.count > 0);
 
   return (
-    <div className={`pf-gallery ${serif.variable} relative min-h-dvh overflow-x-clip bg-[var(--gal-bg)] text-[var(--gal-fg)]`}>
+    <div className="pf-gallery relative min-h-dvh overflow-x-clip bg-[var(--gal-bg)] text-[var(--gal-fg)]">
       <header className="sticky top-0 z-20 border-b border-[var(--gal-line)] bg-[var(--gal-bg)]">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 sm:px-10">
           <a href="#top" className="text-lg font-semibold tracking-tight outline-none focus-visible:underline">

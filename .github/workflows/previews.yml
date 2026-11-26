@@ -1,0 +1,53 @@
+name: Site screenshots
+
+# Screenshots of every project's live site for the portfolio previews (scripts/capture-previews.mjs).
+# Runs when a push to a branch changes the repository list, the capture script or this workflow,
+# and by hand (Actions → Site screenshots → Run workflow). New screenshots are committed to the
+# branch; on the default branch they are only uploaded as an artifact, never pushed.
+# A commit made with GITHUB_TOKEN does not start other workflows, so CI runs on the next push.
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore: [main]
+    paths:
+      - src/data/github-repos.json
+      - scripts/capture-previews.mjs
+      - .github/workflows/previews.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: previews-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    name: Capture live sites
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run previews
+      - name: Commit the screenshots
+        if: github.ref_name != github.event.repository.default_branch
+        run: |
+          git add public/previews src/data/previews.json
+          if git diff --cached --quiet; then echo "screenshots unchanged"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(previews): capture live-site screenshots"
+          git push
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site-screenshots
+          path: |
+            public/previews
+            src/data/previews.json
+          retention-days: 7

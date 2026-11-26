@@ -1,14 +1,11 @@
-import type { Metadata } from "next";
 import { GalaxyHero } from "@/components/portfolio/orbit/galaxy-hero";
 import { Bento, FeaturedTile, RepoSearch, Tile } from "@/components/portfolio/orbit/orbit-bento";
 import { SharePanel } from "@/components/portfolio/share-panel";
 import { FEATURED, languageStats, monthYear, PROFILE, PROJECTS, stackStats, yearStats } from "@/data/portfolio";
+import { pageMetadata } from "@/site/pages";
 import "@/components/portfolio/orbit/orbit.css";
 
-export const metadata: Metadata = {
-  title: "Orbit",
-  description: "Portfolio sample: Devf1s’ GitHub repositories as a WebGL galaxy, placed by age and coloured by language, with live stats.",
-};
+export const metadata = pageMetadata("orbit");
 
 export default function OrbitPage() {
   const years = yearStats();

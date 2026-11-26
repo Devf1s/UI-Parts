@@ -107,8 +107,9 @@
   --color-border: var(--border);
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  /* the families are scoped per route (see src/fonts); outside a scope these fall back to system type */
+  --font-sans: var(--font-geist-sans, ui-sans-serif), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono, ui-monospace), monospace;
 }
 
 html {
@@ -136,5 +137,16 @@ body {
   *::after {
     transition-duration: 1ms !important;
     animation-duration: 1ms !important;
+  }
+}
+
+/* the 404 cat peeking over the lettering */
+@keyframes peek {
+  0%,
+  100% {
+    translate: 0 4px;
+  }
+  50% {
+    translate: 0 -2px;
   }
 }

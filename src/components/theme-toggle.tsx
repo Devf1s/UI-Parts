@@ -1,8 +1,8 @@
 "use client";
 
 import { Monitor, Moon, Sun } from "lucide-react";
-import { m } from "motion/react";
 import { useTheme } from "next-themes";
+import { useIndicator } from "@/hooks/use-indicator";
 import { useMounted } from "@/hooks/use-media-query";
 import { cn } from "@/lib/cn";
 
@@ -12,9 +12,11 @@ const OPTIONS = [
   { value: "dark", icon: Moon, label: "Dark" },
 ] as const;
 
-export function ThemeToggle({ className, layoutId = "theme-pill" }: { className?: string; layoutId?: string }) {
+/** Light / system / dark switch. The pill slides between the options without an animation library. */
+export function ThemeToggle({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
   const mounted = useMounted();
+  const pill = useIndicator<HTMLSpanElement>();
 
   return (
     <div
@@ -39,11 +41,7 @@ export function ThemeToggle({ className, layoutId = "theme-pill" }: { className?
             )}
           >
             {active && (
-              <m.span
-                layoutId={layoutId}
-                className="absolute inset-0 rounded-full bg-card shadow-sm"
-                transition={{ type: "spring", stiffness: 500, damping: 35 }}
-              />
+              <span ref={pill} aria-hidden className="pointer-events-none absolute inset-0 rounded-full bg-card shadow-sm" />
             )}
             <Icon className="relative size-3.5" strokeWidth={2.2} />
           </button>

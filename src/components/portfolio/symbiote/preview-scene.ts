@@ -1,118 +1,164 @@
-import type { Project } from "@/data/portfolio";
-import { createProgram, FULLSCREEN_VS, hexToRgb } from "@/lib/gl/gl";
-import { COVER, COVER_KIND, NOISE } from "@/lib/gl/glsl";
+import { createProgram, FULLSCREEN_VS, type RGB } from "@/lib/gl/gl";
+import { NOISE } from "@/lib/gl/glsl";
 import type { Scene, SceneEnv } from "@/lib/gl/use-gl-scene";
 
 /**
- * The floating project preview of the work index: a project's generative cover that follows the
- * cursor. Switching projects dissolves one cover into the next through noise; moving fast splits
- * the colour channels along the motion and bends the card.
+ * The picture in the work index's floating preview: a screenshot of the hovered project. Switching
+ * projects dissolves one picture into the next along a noisy front; moving fast bends the picture
+ * toward the motion and splits its colour channels. Everything is texture lookups (at most six
+ * per pixel), so it stays cheap on any GPU. A slide whose picture hasn't arrived yet shows its
+ * dominant colour and dissolves into the picture when it lands.
  */
 const FRAG = /* glsl */ `#version 300 es
 precision highp float;
 in vec2 vUv;
 out vec4 o;
 uniform vec2 uRes;
-uniform float uTime, uMix, uRadius;
-uniform vec2 uVel;          // px / s, screen space
-uniform vec4 uA, uB;        // kind, seed, -, - for the previous (A) and current (B) project
-uniform vec3 uA0, uA1, uA2, uB0, uB1, uB2;
+uniform float uMix;
+uniform vec2 uVel;              // px / s at canvas scale, y down like uv
+uniform sampler2D uTexA, uTexB;
+uniform vec4 uA, uB;            // x: has picture, y: picture aspect
+uniform vec3 uColA, uColB;      // placeholder colours
 ${NOISE}
-${COVER}
 
-vec3 both(vec2 p) {
-  vec3 b = cover(p, uB.x, uB.y, uB0, uB1, uB2, uTime);
-  if (uMix >= 1.0) return b;
-  vec3 a = cover(p, uA.x, uA.y, uA0, uA1, uA2, uTime);
-  // dissolve along a noisy front that sweeps across the card
-  float n = vnoise(p * 5.0) * 0.25 + (vUv.x * 0.6 + (1.0 - vUv.y) * 0.4);
-  float m = smoothstep(n - 0.08, n + 0.08, uMix * 1.5 - 0.1);
-  return mix(a, b, m);
+// cover-fit, pinned to the top (screenshots read from the top); uv has its origin top-left
+vec2 fit(vec2 uv, float aspect) {
+  float ca = uRes.x / uRes.y;
+  vec2 s = ca > aspect ? vec2(1.0, aspect / ca) : vec2(ca / aspect, 1.0);
+  return vec2(0.5 + (uv.x - 0.5) * s.x, uv.y * s.y);
+}
+vec3 slot(sampler2D tex, vec4 info, vec3 col, vec2 uv) {
+  if (info.x < 0.5) return col * (1.04 - 0.08 * uv.y);
+  return texture(tex, fit(uv, info.y)).rgb;
+}
+vec3 both(vec2 uv, float m) {
+  vec3 b = slot(uTexB, uB, uColB, uv);
+  if (m >= 1.0) return b;
+  return mix(slot(uTexA, uA, uColA, uv), b, m);
 }
 
 void main() {
-  vec2 size = uRes;
-  vec2 frag = vUv * size;
-  // rounded corners
-  vec2 q = abs(frag - 0.5 * size) - (0.5 * size - uRadius);
-  float sd = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - uRadius;
-  float alpha = 1.0 - smoothstep(-1.0, 1.0, sd);
-  if (alpha <= 0.0) { o = vec4(0.0); return; }
+  vec2 uv = vec2(vUv.x, 1.0 - vUv.y);
+  // dissolve front sweeping from the top-left corner
+  float front = uMix * 1.5 - 0.1;
+  float n = vnoise(vUv * vec2(uRes.x / uRes.y, 1.0) * 5.0) * 0.25 + (vUv.x * 0.6 + (1.0 - vUv.y) * 0.4);
+  float m = uMix >= 1.0 ? 1.0 : smoothstep(n - 0.08, n + 0.08, front);
 
-  vec2 p = (frag - 0.5 * size) / size.y;
-  // bulge toward the motion: the middle of the card lags behind its edges
-  vec2 v = uVel / size.y * 0.005;
-  p -= v * (1.0 - dot(vUv - 0.5, vUv - 0.5) * 4.0);
+  // moving: the middle lags behind the edges, the picture zooms in a touch so no edge shows
+  vec2 v = uVel / uRes.y * 0.005;
+  float speed = length(v);
+  vec2 c = uv - 0.5;
+  uv = 0.5 + c * (1.0 - min(speed * 0.6, 0.05));
+  uv -= v * (1.0 - dot(c, c) * 4.0);
+
   vec3 col;
-  float split = length(v);
-  if (split > 0.003) {
+  if (speed > 0.003) {
     vec2 off = v * 0.45;
-    col = vec3(both(p + off).r, both(p).g, both(p - off).b);
+    col = vec3(both(uv + off, m).r, both(uv, m).g, both(uv - off, m).b);
   } else {
-    col = both(p);
+    col = both(uv, m);
   }
-  // soft vignette for depth
-  col *= 0.9 + 0.1 * smoothstep(0.9, 0.2, length(vUv - 0.5));
-  o = vec4(col * alpha, alpha);
+  // a faint light along the dissolve front
+  if (uMix < 1.0) col += 0.18 * (1.0 - smoothstep(0.0, 0.06, abs(front - n)));
+  o = vec4(col, 1.0);
 }`;
 
-const U = ["uRes", "uTime", "uMix", "uRadius", "uVel", "uA", "uB", "uA0", "uA1", "uA2", "uB0", "uB1", "uB2"] as const;
+const U = ["uRes", "uMix", "uVel", "uTexA", "uTexB", "uA", "uB", "uColA", "uColB"] as const;
+
+export type Slide = { key: string; color: RGB };
 
 export type PreviewScene = Scene & {
-  show(project: Project): void;
+  show(slide: Slide): void;
+  /** Whether the picture of `key` is already on the GPU. */
+  has(key: string): boolean;
+  /** Hands over the picture of a slide. True when it is on screen now, i.e. worth a redraw. */
+  picture(key: string, image: ImageBitmap): boolean;
   /** Screen-space velocity of the card, px / s. */
   velocity(vx: number, vy: number): void;
 };
 
+type Shown = Slide & { tex: WebGLTexture | null; aspect: number };
+
 export function createPreviewScene({ gl, canvas }: SceneEnv): PreviewScene {
   const { prog, u } = createProgram(gl, FULLSCREEN_VS, FRAG, U);
   const vao = gl.createVertexArray();
+  const textures = new Map<string, { tex: WebGLTexture; aspect: number }>();
+  // bound to a slot with no picture: a sampler on an empty unit makes Chrome log a warning per draw
+  const blank = gl.createTexture()!;
+  gl.bindTexture(gl.TEXTURE_2D, blank);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
   let scale = 1;
-  let prev: Project | null = null, cur: Project | null = null;
+  let prev: Shown | null = null, cur: Shown | null = null;
   let mix = 1;
   let vx = 0, vy = 0;
 
-  const set = (slot: "A" | "B", p: Project) => {
-    const [c0, c1, c2] = p.palette.map(hexToRgb);
-    gl.uniform4f(slot === "A" ? u.uA : u.uB, COVER_KIND[p.category], p.seed, 0, 0);
-    gl.uniform3fv(slot === "A" ? u.uA0 : u.uB0, c0);
-    gl.uniform3fv(slot === "A" ? u.uA1 : u.uB1, c1);
-    gl.uniform3fv(slot === "A" ? u.uA2 : u.uB2, c2);
+  const resolve = (s: Slide): Shown => {
+    const t = textures.get(s.key);
+    return { ...s, tex: t?.tex ?? null, aspect: t?.aspect ?? 1.6 };
+  };
+
+  const bind = (slot: 0 | 1, s: Shown | null) => {
+    gl.activeTexture(slot ? gl.TEXTURE1 : gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, s?.tex ?? blank);
+    gl.uniform4f(slot ? u.uB : u.uA, s?.tex ? 1 : 0, s?.aspect ?? 1.6, 0, 0);
+    gl.uniform3fv(slot ? u.uColB : u.uColA, s?.color ?? [0, 0, 0]);
   };
 
   return {
     resize(_w, _h, s) {
       scale = s;
     },
-    show(p) {
-      if (cur?.slug === p.slug) return;
+    show(s) {
+      if (cur?.key === s.key) return;
       prev = cur;
-      cur = p;
+      cur = resolve(s);
       mix = prev ? 0 : 1;
+    },
+    has: (key) => textures.has(key),
+    picture(key, image) {
+      if (textures.has(key)) return false;
+      const tex = gl.createTexture()!;
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+      // mipmaps keep the small print of a screenshot clean when the card is drawn below its size
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      textures.set(key, { tex, aspect: image.width / image.height });
+      if (prev?.key === key) prev = resolve(prev);
+      if (cur?.key !== key) return prev?.key === key && mix < 1;
+      // the placeholder on screen dissolves into the picture
+      if (mix >= 1) prev = cur;
+      cur = resolve(cur);
+      if (mix >= 1) mix = 0;
+      return true;
     },
     velocity(x, y) {
       vx = x;
       vy = y;
     },
-    frame(t, dt) {
+    frame(_t, dt) {
       if (!cur) return false;
       mix = dt > 0 ? Math.min(1, mix + dt * 2.2) : 1;
       gl.viewport(0, 0, canvas.width, canvas.height);
-      gl.clearColor(0, 0, 0, 0);
-      gl.clear(gl.COLOR_BUFFER_BIT);
       gl.useProgram(prog);
       gl.bindVertexArray(vao);
       gl.uniform2f(u.uRes, canvas.width, canvas.height);
-      gl.uniform1f(u.uTime, t);
       gl.uniform1f(u.uMix, mix);
-      gl.uniform1f(u.uRadius, 14 * scale);
-      gl.uniform2f(u.uVel, vx * scale, -vy * scale);
-      if (prev) set("A", prev);
-      set("B", cur);
+      gl.uniform2f(u.uVel, vx * scale, vy * scale);
+      gl.uniform1i(u.uTexA, 0);
+      gl.uniform1i(u.uTexB, 1);
+      bind(0, mix < 1 ? prev : null);
+      bind(1, cur);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       return mix < 1;
     },
     dispose() {
+      for (const t of textures.values()) gl.deleteTexture(t.tex);
+      textures.clear();
+      gl.deleteTexture(blank);
       gl.deleteProgram(prog);
       gl.deleteVertexArray(vao);
     },

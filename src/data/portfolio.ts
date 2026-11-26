@@ -1,4 +1,5 @@
 import snapshot from "./github-repos.json";
+import shots from "./previews.json";
 
 /**
  * Portfolio data: public GitHub repositories (snapshot refreshed by `npm run sync:github`) plus
@@ -25,6 +26,20 @@ export type Repo = {
 
 const REPOS: Repo[] = snapshot.repos;
 
+/** A screenshot of a project's live site (scripts/capture-previews.mjs), 16:10, two WebP sizes. */
+export type Preview = {
+  /** Card size, `width` × `height` px. */
+  src: string;
+  /** Half size, for touch thumbnails. */
+  thumb: string;
+  width: number;
+  height: number;
+  /** Dominant colour: the placeholder while the image loads. */
+  color: string;
+};
+
+const PREVIEWS: Record<string, Preview> = shots.previews;
+
 export type Project = {
   /** Repository name, also the stable id. */
   slug: string;
@@ -48,6 +63,8 @@ export type Project = {
   seed: number;
   /** Three colours of its cover, light → dark. */
   palette: readonly [string, string, string];
+  /** Screenshot of the live site, when it has one. */
+  preview: Preview | null;
 };
 
 export const PROFILE = {
@@ -212,6 +229,7 @@ export function toProject(r: Repo): Project | null {
     featured: c.featured !== undefined,
     seed,
     palette: PALETTES[Math.floor(seed * PALETTES.length) % PALETTES.length],
+    preview: (r.homepage && PREVIEWS[r.name]) || null,
   };
 }
 
@@ -265,3 +283,9 @@ export function monthYear(iso: string) {
 
 /** Host of a demo URL without "www.", for compact link labels. */
 export const hostOf = (url: string) => new URL(url).host.replace(/^www\./, "");
+
+/** Where a project lives, as an address bar shows it: "devf1s.github.io/hoobank", or its repository. */
+export function siteAddress(p: Pick<Project, "demo" | "slug">) {
+  if (!p.demo) return `github.com/${PROFILE.handle}/${p.slug}`;
+  return `${hostOf(p.demo)}${new URL(p.demo).pathname.replace(/\/$/, "")}`;
+}

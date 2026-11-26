@@ -27,6 +27,45 @@ npm run test:all  # lint, types, unit, build, e2e (see Testing)
 | [`/portfolio/gallery`](https://ui-parts.vercel.app/portfolio/gallery), [`/portfolio/orbit`](https://ui-parts.vercel.app/portfolio/orbit) | Two alternative portfolio designs on the same data. |
 | [`/test`](https://ui-parts.vercel.app/test) | The UI parts lab: glass sidebar and venom button. |
 
+Any other address gets a cartoon 404 with the site's cat. Also generated: `/sitemap.xml`,
+`/robots.txt`, `/manifest.webmanifest`, the icons and a shared social card (`public/og.jpg`).
+
+### Project structure
+
+```
+src/
+  site/config.ts        site name, colours, social card, canonical origin
+  site/pages.ts         every page: href, label, title, description → metadata, index, sitemap
+  fonts/                one module per font family (see fonts/README.md)
+  app/
+    layout.tsx          <html>, theme provider, Geist Mono, site-wide metadata
+    page.tsx            the index (/), cartoon look, Fredoka
+    (site)/layout.tsx   Geist for everything in the group; the URL has no "(site)"
+    (site)/portfolio/   /portfolio and its samples, with the dock in their layout
+    (site)/test/        /test, the UI parts lab
+    not-found.tsx, error.tsx, global-error.tsx, sitemap.ts, robots.ts, manifest.ts, icons
+  components/           ui/ (the reusable parts), portfolio/, providers, FontScope, MotionProvider
+  lib/gl/               the WebGL scene runner shared by the portfolio
+```
+
+### Adding a page
+
+1. Add an entry to `PAGES` in `src/site/pages.ts`: the sitemap picks it up.
+2. Create the route folder under `src/app/(site)/` (it gets Geist) or next to it with its own look,
+   and export `metadata = pageMetadata("<key>")` from its `page.tsx`.
+3. To list it on the index, add a door to `DOORS` in `src/app/page.tsx`.
+4. Fonts the page alone uses go in its own layout (see `src/fonts/README.md`); Motion only through
+   `MotionProvider`. `e2e/perf.spec.ts` fails if a page preloads a font it does not use or ships
+   more than 250 kB of JS; add the path to the page lists in the specs.
+
+### Browser support
+
+The CSS baseline is Tailwind v4's: Safari 16.4+, Chrome / Edge 111+, Firefox 128+. Spring easings
+(`linear()`) fall back to `cubic-bezier` where missing, `requestIdleCallback` to a timeout
+(Safari), WebGL2 scenes to their CSS artwork, and the refracting glass to a frosted blur. CI runs
+the full suite in Chromium on four devices and a smoke test of every page in Firefox, desktop
+Safari and Mobile Safari (WebKit).
+
 ## Portfolio
 
 The portfolio is built from the author's public GitHub repositories (Devf1s). It comes in three
@@ -35,13 +74,25 @@ switches between them and the theme, and its home button goes back to the index.
 
 | Design | Idea | WebGL |
 | --- | --- | --- |
-| [`/portfolio`](https://ui-parts.vercel.app/portfolio) · Symbiote | Dark, inky landing; an index of projects with a floating preview, an archive table. | Full-screen metaball ink that reaches for the cursor; the hover preview cross-fades covers and splits RGB with cursor speed. |
+| [`/portfolio`](https://ui-parts.vercel.app/portfolio) · Symbiote | Dark, inky landing; an index of projects with a floating preview of each live site, an archive table. | Full-screen metaball ink that reaches for the cursor; the hover preview dissolves one site's screenshot into the next and splits RGB with cursor speed. |
 | [`/portfolio/gallery`](https://ui-parts.vercel.app/portfolio/gallery) · Gallery | Editorial grid with category filters. | A poster hanging as cloth (drawn with the page's fonts), cover planes synced to the DOM cards that bend with scroll velocity and ripple on hover. |
 | [`/portfolio/orbit`](https://ui-parts.vercel.app/portfolio/orbit) · Orbit | Every repository as a star, with a bento of stats and search. | A point-sprite galaxy: newest repos near the core, oldest at the rim, coloured by language; drag to spin, pick a star to open its card. |
 
 **Data.** `npm run sync:github` fetches the public, non-fork, non-archived repositories into
 `src/data/github-repos.json`; `src/data/portfolio.ts` adds titles, categories and the featured
 order on top. Only public repositories are ever fetched or listed.
+
+**Site screenshots.** `npm run previews` opens every repository's homepage in Chromium at
+1280×800 (reduced motion, no scrollbars), lets it settle and writes two WebP sizes to
+`public/previews` (720 and 360 px wide, names carry a content hash, served with a one-year
+`immutable` cache) plus `src/data/previews.json` (files, size, dominant colour). `--only a,b`
+refreshes some, `--from <dir>` takes `<repo>.png` files instead of capturing, `--url repo=…` points
+a repository at another address. The "Site screenshots" workflow runs it in GitHub Actions
+whenever a branch changes the repository list or the script (or by hand) and commits the result
+to the branch. A unit test fails when a selected project with a live site has no screenshot. The Symbiote card shows the screenshot in a small browser window with the address,
+a Live / Code badge and the project's details; it sits beside the row's text, never over it, and a
+project with no live site gets a card drawn from its repository, title, blurb and stack. Touch
+screens get the same window inside each row, lazy-loaded with `srcset`.
 
 **WebGL kit** (`src/lib/gl`): `useGLScene` creates a WebGL2 scene for a canvas, sizes it with the
 DPR capped, runs one loop only while the scene is on screen and something moves (ambient motion or
@@ -50,7 +101,9 @@ DPR capped, runs one loop only while the scene is on screen and something moves 
 once they are ready, so creating a scene never stalls the page, and a scene can wait to be created
 until it is first needed (`enabled`), as the Symbiote hover preview does. Without WebGL2, or after a lost context, each sample shows a CSS or 2D canvas version of
 the same art. Software rasterisers (CI, VMs) draw still frames, redrawn on resize, theme change or
-input, and so does `prefers-reduced-motion`.
+input, and so does `prefers-reduced-motion`. Canvases are sized by their layout box (not their
+transformed one), and cheap scenes whose detail matters opt out of the resolution governor
+(`adaptive: false`).
 
 **Share.** The venom button opens the native share sheet where there is one and copies the link
 otherwise, with a polite status message.
@@ -179,8 +232,16 @@ CSS variables: `--venom-color` (body and goo), `--venom-color-2` (rim lights and
   their own compositor layer, cross-faded on open/close instead of re-blurred every frame.
   `prefers-reduced-transparency` gets a solid panel.
 - **Active pill** uses Motion's shared layout (`layoutId`), which animates transforms.
-- **Motion is lazy-loaded** with `LazyMotion` + `m` components, so animation features are split
-  out of the first JS chunk. `MotionConfig reducedMotion="user"` respects the OS setting.
+- **Motion ships only with the parts that use it** (the sidebar, the Gallery's reflowing grid),
+  each wrapped in `MotionProvider` (`LazyMotion` + `m`, features lazy-loaded,
+  `reducedMotion="user"`). The theme switch and the dock slide their pills with `useIndicator`
+  (a WAAPI `inset` animation on a spring `linear()`), so the index and most pages carry no Motion.
+- **Fonts load per route:** each family is preloaded only on the pages that render it (Geist for
+  the portfolio and the lab, Fredoka for the index, Instrument Serif for the Gallery, Geist Mono
+  everywhere). First load: index 229 kB, portfolio 288 kB (from 320 and 364).
+- **Pages are kept, hidden, for the way back** (Cache Components uses React `<Activity>`): their
+  effects stop, so components reset transient state (a button mid-gag, an open drawer) in a
+  layout-effect cleanup, and WebGL scenes are recreated on the same canvas when shown again.
 - **VenomButton renders with WebGL2**: the slab, goo, label and cursor are signed distance fields
   ray marched from above in one pass, shaded in a second (studio lights, heightfield shadows, AO)
   and anti-aliased in a third. The canvas covers only the button plus its reach, and the floor is
@@ -200,6 +261,15 @@ CSS variables: `--venom-color` (body and goo), `--venom-color-2` (rim lights and
   pay for it up front.
 - **Portfolio pages stay under the same 250 kB JS budget:** each sample's scene code ships only
   with its page, and the dock prefetches another page when you point at or focus its link, not on load.
+- **Portfolio scenes start when the page is idle** (`requestIdleCallback`), after hydration, over
+  their CSS artwork; a frame-time governor lowers a canvas's resolution when most frames miss
+  ~40 fps, and devices with ≤ 4 cores or ≤ 4 GB start at 75 %.
+- **The Symbiote hover preview is texture lookups only** (at most six per pixel: a dissolve between
+  two screenshots, plus the RGB split while moving), down from up to six evaluations of a
+  procedural cover per pixel: about 1.7 ms a frame on a software rasteriser instead of 25 ms, and a
+  steady 60 fps while sweeping the list. Its scene is created and the screenshots are fetched and
+  decoded off the main thread (`createImageBitmap`) when the list comes near, on devices that can
+  hover, so the first hover is instant; touch screens never load it.
 
 ## Responsive & accessibility
 
@@ -218,7 +288,7 @@ CSS variables: `--venom-color` (body and goo), `--venom-color-2` (rim lights and
 | Command | What runs |
 | --- | --- |
 | `npm test` | Vitest unit tests for the venom physics: outline geometry (pill and rounded rectangle), sense/reach thresholds, tendril cap, grab, snap and sleep, stability under erratic input, determinism. Plus the portfolio data (only public repos, unique slugs, stats), galaxy maths (placement, projection, picking), the share fallback chain and colour parsing, and the toon maths: where an eye looks, the pupil spring, seeded focus lines and impact bursts. |
-| `npm run test:e2e` | Playwright against the production build (`npm run build` first) on four devices: desktop 1440×900, iPad Mini, Pixel 7, iPhone SE. |
+| `npm run test:e2e` | Playwright against the production build (`npm run build` first) on four devices: desktop 1440×900, iPad Mini, Pixel 7, iPhone SE. With `PW_BROWSERS=all` (browsers installed) the smoke test also runs in Firefox, desktop Safari and Mobile Safari. |
 | `npm run test:all` | Lint, types, unit, build and e2e, the same as CI. |
 
 The e2e suite covers:
@@ -231,7 +301,8 @@ The e2e suite covers:
   deterministically): slab and transparent floor drawn, tendrils latch and snap, the 3D cursor appears and goes.
 - **Portfolio samples:** each renders its WebGL scene without errors, falls back without WebGL, passes axe in both themes, keeps one h1 and no sideways scroll, never lets a canvas block clicks, pauses off screen and under reduced motion; plus per-sample usability (index preview, filters, star picking, search, share sheet and clipboard fallback, dock).
 - **Index:** every page listed in order and centred, no sideways scroll, every button plays its exit gag and opens its page (tap on touch), keyboard order, visible focus that wakes the character, axe in both themes; the cat's eyes follow the pointer and settle, it pops up on hover and squints on a press; the pictures spring out and tuck back; the rocket rumbles and lifts off; the glove boings out and punches; sound stays off until switched on; reduced motion (no entrance, links open at once); and a page left alone goes fully idle.
-- **Performance budgets:** LCP < 2.5 s, CLS < 0.1, first-load JS < 250 kB compressed, idle main thread < 10 % (index, lab and every portfolio page), p95 frame < 50 ms with 4× CPU throttle, off-screen canvases stop drawing.
+- **Performance budgets:** LCP < 2.5 s, CLS < 0.1, first-load JS < 250 kB compressed, idle main thread < 10 % (index, lab and every portfolio page), p95 frame < 50 ms with 4× CPU throttle, off-screen canvases stop drawing, and every font a page preloads is one it renders.
+- **Cross-browser smoke:** every page loads with a clean console, one h1 and no sideways scroll, and its WebGL scene settles (drawing or fallen back); the theme switch, an index button and the 404 work. Coming back to the index after a button's gag finds it at rest.
 
 CI (`.github/workflows/ci.yml`) runs all of it on every pull request. If you already have Chromium installed, point the tests at it with `PW_CHROMIUM_PATH=/path/to/chrome`.
 

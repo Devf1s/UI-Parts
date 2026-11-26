@@ -242,3 +242,36 @@ for (const path of ["/", "/portfolio", "/portfolio/gallery", "/portfolio/orbit"]
     });
   });
 }
+
+// ── fonts: next/font preloads a family on every route that imports it; each page must use what it preloads
+for (const path of ["/", "/portfolio", "/portfolio/gallery", "/portfolio/orbit", "/test"]) {
+  test(`${path}: preloads only the fonts it renders`, async ({ page }, info) => {
+    test.skip(info.project.name !== "desktop", "same HTML on every device");
+    await open(page, path);
+    await page.waitForLoadState("networkidle");
+    const { preloads, unused } = await page.evaluate(async () => {
+      await document.fonts.ready;
+      const norm = (v: string) => v.replace(/["']/g, "").trim();
+      const faces: { family: string; range: string; style: string; src: string }[] = [];
+      for (const sheet of document.styleSheets) {
+        let rules: CSSRuleList;
+        try {
+          rules = sheet.cssRules;
+        } catch {
+          continue;
+        }
+        for (const r of rules)
+          if (r instanceof CSSFontFaceRule)
+            faces.push({ family: norm(r.style.getPropertyValue("font-family")), range: r.style.getPropertyValue("unicode-range"), style: r.style.getPropertyValue("font-style") || "normal", src: r.style.getPropertyValue("src") });
+      }
+      const loaded = new Set([...document.fonts].filter((f) => f.status === "loaded").map((f) => `${norm(f.family)}|${f.unicodeRange}|${f.style}`));
+      // @font-face sources are relative to the stylesheet: compare file names
+      const links = [...document.querySelectorAll<HTMLLinkElement>('link[rel="preload"][as="font"]')].map((l) => new URL(l.href).pathname.split("/").pop()!);
+      const used = (file: string) => faces.some((f) => f.src.includes(file) && loaded.has(`${f.family}|${f.range}|${f.style}`));
+      return { preloads: links.length, unused: links.filter((f) => !used(f)) };
+    });
+    test.info().annotations.push({ type: "fonts", description: `${preloads} preloaded` });
+    expect(preloads).toBeGreaterThan(0);
+    expect(unused).toEqual([]);
+  });
+}

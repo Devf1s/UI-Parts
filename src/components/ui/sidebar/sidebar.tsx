@@ -16,12 +16,14 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
   type CSSProperties,
   type ReactNode,
 } from "react";
+import { MotionProvider } from "@/components/motion-provider";
 import { useCanHover, useMediaQuery, usePrefersReducedMotion } from "@/hooks/use-media-query";
 import { cn } from "@/lib/cn";
 import { displacementMap, shapePath, supportsRefraction } from "./sidebar-glass";
@@ -85,7 +87,16 @@ const EASE = [0.32, 0.72, 0, 1] as const;
 
 /* ------------------------------------------------------------------ */
 
-export function Sidebar({
+/** Brings its own Motion scope, so it can be dropped into any page. */
+export function Sidebar(props: SidebarProps) {
+  return (
+    <MotionProvider>
+      <SidebarRoot {...props} />
+    </MotionProvider>
+  );
+}
+
+function SidebarRoot({
   sections,
   activeId,
   onNavigate,
@@ -119,6 +130,18 @@ export function Sidebar({
 
   // Close the drawer when we leave mobile layout (rotation, resize).
   if (!isMobile && drawerOpen) setDrawerOpen(false);
+
+  // A page that is navigated away from is hidden (Activity), not unmounted: coming back must not
+  // find the drawer open or the rail stuck in its hover state.
+  useLayoutEffect(
+    () => () => {
+      window.clearTimeout(hoverTimer.current);
+      setHovered(false);
+      setKeyboardFocus(false);
+      setDrawerOpen(false);
+    },
+    [],
+  );
 
   // Touch tablets: "pinned" acts as a temporary open state, close on outside tap / Esc.
   useEffect(() => {
