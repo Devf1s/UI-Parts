@@ -116,4 +116,11 @@ describe("site screenshots", () => {
       expect(p.color).toMatch(/^#[0-9a-f]{6}$/);
     }
   });
+
+  it("cover every selected project with a live site, unless it renders blank", () => {
+    const blank: Record<string, string> = shots.blank;
+    for (const p of FEATURED.filter((p) => p.demo)) expect(p.preview ?? blank[p.slug], `${p.slug}: run npm run previews`).toBeTruthy();
+    for (const p of PROJECTS.filter((p) => !p.demo)) expect(p.preview).toBeNull();
+    for (const name of Object.keys(blank)) expect(shots.previews, name).not.toHaveProperty(name);
+  });
 });

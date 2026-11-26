@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { byCategory, FEATURED, PROJECTS, siteAddress } from "../src/data/portfolio";
+import { byCategory, FEATURED, hostOf, PROJECTS, siteAddress } from "../src/data/portfolio";
 import { horizontalOverflow } from "./helpers";
 
 /**
@@ -161,6 +161,10 @@ test.describe("Symbiote", () => {
     await expect.poll(() => status(page, "preview-canvas")).toBe("on");
     await expect(preview.locator(".sym-card__url")).toHaveText(siteAddress(FEATURED[0]));
     await expect(preview.locator(".sym-card__title")).toContainText(FEATURED[0].title);
+    // the screenshot is fetched for the texture
+    await expect
+      .poll(() => page.evaluate(() => performance.getEntriesByType("resource").some((e) => e.name.includes("/previews/"))))
+      .toBe(true);
     const edge = await textRight(rows.first());
     await expect.poll(async () => (await preview.boundingBox())!.x).toBeGreaterThanOrEqual(edge);
 
@@ -207,7 +211,17 @@ test.describe("Symbiote", () => {
         const img = thumb.locator("img");
         await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
         expect(await img.evaluate((el: HTMLImageElement) => el.currentSrc)).toMatch(/\/previews\/.+\.webp$/);
-      } else await expect(thumb).toContainText("source on GitHub");
+      } else await expect(thumb).toContainText(p.demo ? `live at ${hostOf(p.demo)}` : "source on GitHub");
+    }
+  });
+
+  test("screenshots are cached for good (their names change with their content)", async ({ request }) => {
+    const p = FEATURED.find((x) => x.preview)!;
+    for (const file of [p.preview!.src, p.preview!.thumb]) {
+      const res = await request.get(file);
+      expect(res.status()).toBe(200);
+      expect(res.headers()["content-type"]).toBe("image/webp");
+      expect(res.headers()["cache-control"]).toBe("public, max-age=31536000, immutable");
     }
   });
 
