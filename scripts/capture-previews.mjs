@@ -27,13 +27,13 @@ const DIR = join(root, "public/previews");
 const MANIFEST = join(root, "src/data/previews.json");
 const VIEWPORT = { width: 1280, height: 800 };
 /** Card (680 px wide at 2×) and touch thumbnail sizes; both 16:10 like the viewport. */
-const SIZES = { src: 720, thumb: 360 };
+const SIZES = { src: { width: 720, quality: 80 }, thumb: { width: 360, quality: 74 } };
 const SETTLE_MS = 2500;
 const RETRY_SETTLE_MS = 10_000;
 /** Shannon entropy below which a screenshot is a blank page (a logo on a flat colour ≈ 0.2). */
 const BLANK_ENTROPY = 0.6;
 /** Mean difference (0…255) on a 64×40 thumbnail below which two screenshots show the same page. */
-const SAME_PAGE = 3;
+const SAME_PAGE = 2;
 
 const args = process.argv.slice(2);
 const flag = (name) => {
@@ -127,27 +127,38 @@ async function samePage(png, prev) {
   const file = join(root, "public", prev.src);
   if (!existsSync(file)) return false;
   const tiny = (input) => sharp(input).resize(64, 40, { fit: "fill" }).greyscale().raw().toBuffer();
-  const [a, b] = await Promise.all([tiny(png), tiny(file)]);
+  // like with like: the capture goes through the same encoding first, or scaling and compression
+  // alone differ by ~2.4 on a page full of small text
+  const fresh = await encode(png, SIZES.src);
+  const [a, b] = await Promise.all([tiny(fresh), tiny(file)]);
   let d = 0;
   for (let i = 0; i < a.length; i++) d += Math.abs(a[i] - b[i]);
   return d / a.length < SAME_PAGE;
 }
 
+function heightOf(width) {
+  return Math.round((width * VIEWPORT.height) / VIEWPORT.width);
+}
+
+/** The picture as the portfolio shows it: the top 16:10 of the page, scaled down, as WebP. */
+function encode(png, { width, quality }) {
+  return sharp(png)
+    .resize(width, heightOf(width), { fit: "cover", position: "top", kernel: "lanczos3" })
+    .webp({ quality, effort: 6, smartSubsample: true })
+    .toBuffer();
+}
+
 async function save(name, png) {
-  const base = sharp(png).resize(VIEWPORT.width, VIEWPORT.height, { fit: "cover", position: "top" });
-  const { dominant } = await base.clone().stats();
-  const color = `#${[dominant.r, dominant.g, dominant.b].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
   const files = {};
-  for (const [key, width] of Object.entries(SIZES)) {
-    const webp = await base
-      .clone()
-      .resize(width, Math.round((width * VIEWPORT.height) / VIEWPORT.width), { kernel: "lanczos3" })
-      .webp({ quality: key === "src" ? 80 : 74, effort: 6, smartSubsample: true })
-      .toBuffer();
+  const webps = {};
+  for (const [key, size] of Object.entries(SIZES)) {
+    const webp = (webps[key] = await encode(png, size));
     const hash = createHash("sha256").update(webp).digest("hex").slice(0, 8);
     const file = `${name.toLowerCase()}${key === "thumb" ? "-sm" : ""}.${hash}.webp`;
     await writeFile(join(DIR, file), webp);
     files[key] = `/previews/${file}`;
   }
-  return { ...files, width: SIZES.src, height: Math.round((SIZES.src * VIEWPORT.height) / VIEWPORT.width), color };
+  const { dominant } = await sharp(webps.src).stats();
+  const color = `#${[dominant.r, dominant.g, dominant.b].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+  return { ...files, width: SIZES.src.width, height: heightOf(SIZES.src.width), color };
 }
