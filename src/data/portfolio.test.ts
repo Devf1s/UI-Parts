@@ -1,5 +1,8 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import snapshot from "./github-repos.json";
+import shots from "./previews.json";
 import {
   byCategory,
   FEATURED,
@@ -9,9 +12,11 @@ import {
   monthYear,
   PALETTES,
   PROJECTS,
+  siteAddress,
   stackStats,
   toProject,
   yearStats,
+  type Preview,
 } from "./portfolio";
 
 describe("portfolio data", () => {
@@ -89,5 +94,26 @@ describe("portfolio data", () => {
     expect(monthYear("2025-12-31T23:30:00Z")).toBe("Dec 2025");
     expect(hostOf("https://www.example.com/a")).toBe("example.com");
     expect(hostOf("https://devf1s.github.io/hoobank/")).toBe("devf1s.github.io");
+  });
+
+  it("writes addresses the way an address bar shows them", () => {
+    expect(siteAddress({ slug: "hoobank", demo: "https://devf1s.github.io/hoobank/" })).toBe("devf1s.github.io/hoobank");
+    expect(siteAddress({ slug: "x", demo: "https://www.example.com" })).toBe("example.com");
+    expect(siteAddress({ slug: "react-online-store", demo: null })).toBe(`github.com/${snapshot.user}/react-online-store`);
+  });
+});
+
+describe("site screenshots", () => {
+  const entries = Object.entries(shots.previews as Record<string, Preview>);
+
+  it("point at files that exist, at 16:10, with a placeholder colour", () => {
+    for (const [name, p] of entries) {
+      for (const file of [p.src, p.thumb]) {
+        expect(file, name).toMatch(/^\/previews\/[\w.-]+\.[0-9a-f]{8}\.webp$/);
+        expect(existsSync(join(process.cwd(), "public", file)), file).toBe(true);
+      }
+      expect(p.width / p.height).toBeCloseTo(1.6);
+      expect(p.color).toMatch(/^#[0-9a-f]{6}$/);
+    }
   });
 });
