@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type RefObject } from "react";
+import { whenIdle } from "@/lib/idle";
 import { createGL, forgetPrograms, programsReady } from "./gl";
 
 /**
@@ -42,6 +43,11 @@ export type SceneOptions = {
   attributes?: WebGLContextAttributes;
   /** false: don't create anything yet (e.g. until the scene is first needed). Default true. */
   enabled?: boolean;
+  /**
+   * Trade resolution for speed on weak devices (start lower there, step down when frames are slow).
+   * Default true; false for cheap scenes whose detail matters, such as screenshots.
+   */
+  adaptive?: boolean;
 };
 
 export type SceneStatus = "pending" | "on" | "off";
@@ -56,19 +62,6 @@ export type SceneControl<S extends Scene> = {
 
 /** Test / preview hook: `window.__PF_GL__ = "force"` animates even on a software rasteriser, "off" disables WebGL. */
 const flag = () => (window as unknown as { __PF_GL__?: string }).__PF_GL__;
-
-/**
- * Calls `fn` once the main thread is idle (hydration done, first paint out), at the latest after
- * `timeout` ms. Scenes are decoration over a CSS fallback, so they start after the page is usable.
- */
-function whenIdle(fn: () => void, timeout = 1500) {
-  if (typeof requestIdleCallback === "function") {
-    const id = requestIdleCallback(fn, { timeout });
-    return () => cancelIdleCallback(id);
-  }
-  const id = setTimeout(fn, 250); // Safari has no requestIdleCallback
-  return () => clearTimeout(id);
-}
 
 /** Phones and laptops with few cores or little memory start at a lower resolution. */
 function lowEndDevice() {
@@ -118,6 +111,7 @@ export function useGLScene<S extends Scene>(
 
   const ctl = useRef({ wake: (ms?: number) => void ms, invalidate: () => {} });
   const [idle, setIdle] = useState(false);
+  // scenes are decoration over a CSS fallback: they start once the page is usable
   useEffect(() => whenIdle(() => setIdle(true)), []);
   const enabled = (options.enabled ?? true) && idle;
 
@@ -164,7 +158,8 @@ export function useGLScene<S extends Scene>(
     let lost = false;
     let compiled = false;
     let width = 0, height = 0;
-    let resolution = lowEndDevice() ? 0.75 : 1;
+    const adaptive = opts.adaptive ?? true;
+    let resolution = adaptive && lowEndDevice() ? 0.75 : 1;
     let slow = 0, sampled = 0;
     const debug: DebugHandle = {
       quality,
@@ -233,7 +228,7 @@ export function useGLScene<S extends Scene>(
         if (!lost) raf = requestAnimationFrame(tick); // still compiling: check again next frame
         return;
       }
-      if (last) govern(now - last);
+      if (last && adaptive) govern(now - last);
       const dt = last ? Math.min((now - last) / 1000, 1 / 20) : 1 / 60;
       last = now;
       const animate = motion && (ambient() || now < wakeUntil);
@@ -270,11 +265,11 @@ export function useGLScene<S extends Scene>(
     c.invalidate = request;
 
     const resize = () => {
-      const r = canvas.getBoundingClientRect();
       const o = optsRef.current;
       const scale = Math.min(window.devicePixelRatio || 1, o.maxDpr ?? 2) * (o.scale ?? 1) * resolution;
-      width = r.width;
-      height = r.height;
+      // layout size, not the transformed box: a canvas measured mid scale-in would stay soft
+      width = canvas.clientWidth;
+      height = canvas.clientHeight;
       const w = Math.max(1, Math.round(width * scale)), h = Math.max(1, Math.round(height * scale));
       if (canvas.width !== w || canvas.height !== h) {
         canvas.width = w;
